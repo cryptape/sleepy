@@ -1,0 +1,7 @@
+id_card=0
+port = 40000
+max_peer = 1
+[[peers]]
+id_card=0
+ip = "127.0.0.1"
+port = 40000
