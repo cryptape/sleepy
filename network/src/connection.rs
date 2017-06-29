@@ -8,6 +8,7 @@ use std::sync::Arc;
 use std::io::prelude::*;
 use std::net::TcpStream;
 use config;
+use std::sync::mpsc::Receiver;
 
 const TIMEOUT: u64 = 15;
 
@@ -28,7 +29,7 @@ pub struct Connection {
 }
 
 impl Connection {
-    pub fn new(config: &config::NetConfig) -> Self {
+    pub fn new(config: &config::SleepyConfig) -> Self {
         let peers = config.peers.as_ref().unwrap();
         let id_card = config.id_card.unwrap();
         let mut peers_pair = Vec::default();
@@ -115,6 +116,18 @@ pub fn broadcast(con: &Connection, msg: Vec<u8>, origin: u32, operate: Operation
 pub fn is_send(id_card: u32, origin: u32, operate: Operation) -> bool {
     operate == Operation::BROADCAST || (operate == Operation::SINGLE && id_card == origin) ||
     (operate == Operation::SUBTRACT && origin != id_card)
+}
+
+pub fn start_client(config: &config::SleepyConfig, rx: Receiver<(u32, Operation, Vec<u8>)>) {
+    let con = Connection::new(config);
+    do_connect(&con);
+    thread::spawn(move || {
+        info!("start client!");
+        loop {
+            let (origin, op, msg) = rx.recv().unwrap();
+            broadcast(&con, msg, origin, op);
+        }
+    });
 }
 
 #[cfg(test)]

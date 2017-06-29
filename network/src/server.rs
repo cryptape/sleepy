@@ -7,7 +7,7 @@ use futures::future::result;
 use tokio_proto::TcpServer;
 use tokio_service::Service;
 
-use config::NetConfig;
+use config::SleepyConfig;
 use protocol::{SleepyProto, SleepyRequest, SleepyResponse};
 use msghandle::net_msg_handler;
 
@@ -43,7 +43,8 @@ impl Service for Server {
     }
 }
 
-pub fn start_server(config: &NetConfig, mysender: MySender) {
+pub fn start_server(config: &SleepyConfig, tx: Sender<(u32, SleepyRequest)>) {
+    let mysender = MySender::new(tx);
     let addr = format!("0.0.0.0:{}", config.port.unwrap());
     let addr = addr.parse::<SocketAddr>().unwrap();
 

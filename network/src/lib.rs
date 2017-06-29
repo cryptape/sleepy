@@ -9,7 +9,10 @@ extern crate tokio_service;
 extern crate bytes;
 extern crate byteorder;
 extern crate parking_lot;
-extern crate rustc_serialize;
+extern crate util;
+extern crate serde;
+#[macro_use]
+extern crate serde_derive;
 
 pub mod config;
 pub mod server;

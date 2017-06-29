@@ -8,9 +8,9 @@ extern crate time;
 use env_logger::LogBuilder;
 use std::env;
 use log::{LogLevelFilter, LogRecord};
-use network::config::NetConfig;
-use network::server::{MySender, start_server};
-use network::connection::{Connection, do_connect, broadcast, Operation};
+use network::config::SleepyConfig;
+use network::server::{start_server};
+use network::connection::{start_client, Operation};
 use std::sync::mpsc::channel;
 use clap::App;
 use std::time::Duration;
@@ -57,25 +57,24 @@ fn main() {
         config_path = c;
     }
 
-    let config = NetConfig::new(config_path);
+    let config = SleepyConfig::new(config_path);
 
-    let (tx, rx) = channel();
+    let (stx, srx) = channel();
 
     // start server
     // This brings up our server.
-    let mysender = MySender::new(tx);
-    start_server(&config, mysender);
+    start_server(&config, stx);
 
     // connect peers
-    let con = Connection::new(&config);
-    do_connect(&con);
+    let (ctx, crx) = channel();
+    start_client(&config, crx);
 
     thread::sleep(Duration::from_millis(3000));
-    broadcast(&con, [1,2,3,4].to_vec(), 0, Operation::BROADCAST);
+    ctx.send((0, Operation::BROADCAST, [1,2,3,4].to_vec())).unwrap();
     loop {
-        let (origin, msg) = rx.recv().unwrap();
+        let (origin, msg) = srx.recv().unwrap();
         info!("get msg {:?} from {}", msg, origin);
         thread::sleep(Duration::from_millis(1000));
-        broadcast(&con, [1,2,3,4].to_vec(), origin, Operation::BROADCAST);
+        ctx.send((origin, Operation::BROADCAST, [1,2,3,4].to_vec())).unwrap();
     }
 }

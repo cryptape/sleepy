@@ -5,8 +5,7 @@ authors = ["rink1969 <rink1969@cryptape.com>"]
 
 [dependencies]
 clap = "2"
-toml = "0.2"
-rustc-serialize = "0.3"
+toml = "0.4"
 byteorder = "1.0.0"
 parking_lot = "0.4"
 futures = "0.1"
@@ -18,3 +17,6 @@ bytes = "0.4"
 log = "0.3"
 env_logger = "0.4"
 time = "0.1"
+util = { path = "../util" }
+serde = "1.0"
+serde_derive = "1.0"
