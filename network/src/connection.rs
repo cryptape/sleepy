@@ -11,6 +11,8 @@ use config;
 
 const TIMEOUT: u64 = 15;
 
+pub type PeerPairs = Vec<(u32, SocketAddr, Arc<RwLock<Option<TcpStream>>>)>;
+
 #[derive(Debug, PartialEq, Clone)]
 pub enum Operation {
     BROADCAST = 0,
@@ -22,7 +24,7 @@ impl ::std::marker::Copy for Operation {}
 
 pub struct Connection {
     pub id_card: u32,
-    pub peers_pair: Vec<(u32, SocketAddr, Arc<RwLock<Option<TcpStream>>>)>,
+    pub peers_pair: PeerPairs,
 }
 
 impl Connection {
@@ -111,19 +113,8 @@ pub fn broadcast(con: &Connection, msg: Vec<u8>, origin: u32, operate: Operation
 }
 
 pub fn is_send(id_card: u32, origin: u32, operate: Operation) -> bool {
-    let mut is_ok = false;
-    if operate == Operation::BROADCAST {
-        is_ok = true;
-    } else if operate == Operation::SINGLE {
-        if id_card == origin {
-            is_ok = true;
-        }
-    } else if operate == Operation::SUBTRACT {
-        if origin != id_card {
-            is_ok = true;
-        }
-    }
-    is_ok
+    operate == Operation::BROADCAST || (operate == Operation::SINGLE && id_card == origin) ||
+    (operate == Operation::SUBTRACT && origin != id_card)
 }
 
 #[cfg(test)]
