@@ -18,8 +18,7 @@ pub enum Operation {
     SUBTRACT = 2,
 }
 
-impl ::std::marker::Copy for Operation {
-}
+impl ::std::marker::Copy for Operation {}
 
 pub struct Connection {
     pub id_card: u32,
@@ -73,7 +72,7 @@ pub fn do_connect(con: &Connection) {
                               }
                           }
 
-                          let ten_sec = Duration::from_millis(TIMEOUT * 1000);
+                          let ten_sec = Duration::from_secs(TIMEOUT);
                           thread::sleep(ten_sec);
                           trace!("after sleep retry connect {:?}!", addr);
                       });
