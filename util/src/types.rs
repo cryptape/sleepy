@@ -40,6 +40,17 @@ struct ChainImpl {
 
 //select main
 impl Chain {
+    pub fn init() -> Self {
+        Chain {
+            inner: RwLock::new(ChainImpl {
+                                   blocks: HashMap::new(),
+                                   forks: BTreeMap::new(),
+                                   current_height: 0,
+                                   current_hash: H256::zero(),
+                               }),
+        }
+    }
+
     pub fn insert(&self, block: Block) -> Result<(), Error> {
         let encoded: Vec<u8> = serialize(&block, Infinite).unwrap();
         let hash = encoded.sha3();
@@ -55,6 +66,8 @@ impl Chain {
         }
 
         guard.blocks.insert(hash, block);
+
+        guard.current_height = bh;
         let forks = {
             let forks = guard.forks.entry(bh).or_insert_with(Vec::new);
             forks.push(hash);
