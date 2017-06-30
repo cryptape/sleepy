@@ -1,3 +1,22 @@
+[package]
+description = "sleepy demo"
+name = "sleepy"
+version = "0.1.0"
+authors = ["rink1969 <rink1969@cryptape.com>"]
+
+[[bin]]
+name = "sleepy"
+path = "./main.rs"
+
+[dependencies]
+clap = "2"
+env_logger = "0.4"
+log = "0.3"
+time = "0.1"
+network = { path = "./network" }
+util = { path = "../util" }
+
+
 [workspace]
 members = ["network"
 ,"util"
