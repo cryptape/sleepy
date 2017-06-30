@@ -79,7 +79,7 @@ impl KeyPair {
 mod tests {
     use std::str::FromStr;
     use super::{KeyPair, PrivKey};
-    use util::hash::H256 as Hash256;
+    use bigint::hash::H256 as Hash256;
 
     #[test]
     fn from_privkey() {

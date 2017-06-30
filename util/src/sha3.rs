@@ -79,7 +79,7 @@ mod tests {
 
     #[test]
     fn sha3_empty() {
-        assert_eq!([0u8; 0].sha3(), Hash256(SHA3_EMPTY));
+        assert_eq!([0u8; 0].sha3(), SHA3_EMPTY);
     }
     #[test]
     fn sha3_as() {

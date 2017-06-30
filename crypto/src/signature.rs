@@ -219,7 +219,7 @@ pub fn recover(signature: &Signature, message: &Message) -> Result<PubKey, Error
 mod tests {
     use std::str::FromStr;
     use rand::os::OsRng;
-    use util::hash::H256;
+    use bigint::hash::H256;
     use super::{SECP256K1, Signature, sign};
     use super::super::KeyPair;
 
