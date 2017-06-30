@@ -1,6 +1,6 @@
 use parking_lot::RwLock;
 
-use bigint::hash::{H256, H512};
+use bigint::hash::{H256, H520};
 use std::collections::{BTreeMap, HashMap, HashSet};
 use bincode::{serialize, deserialize, Infinite};
 use rand::{thread_rng, Rng};
@@ -20,7 +20,7 @@ pub struct Block {
     pub height: u64,
     pub timestamp: u64,
     pub pubkey: H256,
-    pub signature: H512,
+    pub signature: H520,
     pub transactions: Vec<Transcation>,
     pub pre_hash: H256,
 }

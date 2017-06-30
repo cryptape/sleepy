@@ -1,0 +1,12 @@
+[package]
+name = "miner"
+version = "0.1.0"
+authors = ["rink1969 <rink1969@cryptape.com>"]
+
+[dependencies]
+util = { path = "../util" }
+bigint = {path = "../util/bigint"}
+crypto = {path = "../crypto"}
+bincode = "0.8.0"
+log = "0.3"
+time = "0.1"
