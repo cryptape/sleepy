@@ -15,7 +15,7 @@ use bigint::uint::U256;
 use util::Hashable;
 use std::sync::Arc;
 
-pub fn start_miner(tx: Sender<Block>, chain: Arc<Chain>, privkey: &PrivKey) {
+pub fn start_miner(tx: Sender<Block>, chain: Arc<Chain>, privkey: PrivKey) {
     let difficulty : H256 = (U256::max_value() / U256::from(4 * 6 * 10)).into();
     let tx = tx.clone();
     let chain = chain.clone();
@@ -37,6 +37,7 @@ pub fn start_miner(tx: Sender<Block>, chain: Arc<Chain>, privkey: &PrivKey) {
                         transactions: Vec::new(),
                         pre_hash: pre_hash,
                 };
+                info!("get a block {} {}", h+1, t);
                 tx.send(blk).unwrap();
             }
 

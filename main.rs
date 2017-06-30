@@ -7,6 +7,7 @@ extern crate time;
 extern crate bincode;
 extern crate util;
 extern crate crypto;
+extern crate miner;
 
 use env_logger::LogBuilder;
 use std::env;
@@ -19,6 +20,9 @@ use clap::App;
 use std::time::Duration;
 use std::thread;
 use bincode::{serialize, deserialize, Infinite};
+use miner::start_miner;
+use util::types::{Block, Chain};
+use std::sync::Arc;
 
 pub fn log_init() {
     let format = |record: &LogRecord| {
@@ -72,6 +76,14 @@ fn main() {
     // connect peers
     let (ctx, crx) = channel();
     start_client(&config, crx);
+
+    // init chain
+    let chain = Chain::init();
+    let chain = Arc::new(chain);
+
+    // start miner
+    let (mtx, mrx) = channel();
+    start_miner(mtx, chain, config.private_key.unwrap());
 
     thread::sleep(Duration::from_millis(3000));
     ctx.send((0, Operation::BROADCAST, [1,2,3,4].to_vec())).unwrap();
