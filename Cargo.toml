@@ -14,10 +14,6 @@ env_logger = "0.4"
 log = "0.3"
 time = "0.1"
 network = { path = "./network" }
-util = { path = "../util" }
-
-
-[workspace]
-members = ["network"
-,"util"
-]
+util = { path = "./util" }
+crypto = { path = "./crypto" }
+bincode = "0.8.0"

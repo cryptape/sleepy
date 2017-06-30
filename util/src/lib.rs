@@ -7,8 +7,9 @@ extern crate parking_lot;
 extern crate rustc_serialize;
 extern crate serde_json;
 extern crate rand;
+extern crate tiny_keccak;
+extern crate bigint;
 
-pub mod hash;
 pub mod types;
 mod sha3;
 

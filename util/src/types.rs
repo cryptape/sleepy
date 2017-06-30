@@ -1,5 +1,5 @@
 use parking_lot::RwLock;
-use hash::{H256, H512};
+use bigint::hash::{H256, H512};
 use std::collections::{BTreeMap, HashMap};
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]

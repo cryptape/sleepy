@@ -3,7 +3,7 @@ extern crate toml;
 use std::io::prelude::*;
 use std::fs::File;
 use std::io::BufReader;
-use util::hash::H256; 
+use bigint::hash::H256; 
 
 #[derive(Debug, Deserialize)]
 pub struct SleepyConfig {

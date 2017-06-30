@@ -4,6 +4,9 @@ extern crate network;
 extern crate log;
 extern crate clap;
 extern crate time;
+extern crate bincode;
+extern crate util;
+extern crate crypto;
 
 use env_logger::LogBuilder;
 use std::env;
@@ -15,6 +18,7 @@ use std::sync::mpsc::channel;
 use clap::App;
 use std::time::Duration;
 use std::thread;
+use bincode::{serialize, deserialize, Infinite};
 
 pub fn log_init() {
     let format = |record: &LogRecord| {

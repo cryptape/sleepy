@@ -13,6 +13,7 @@ extern crate util;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
+extern crate bigint;
 
 pub mod config;
 pub mod server;

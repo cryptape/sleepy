@@ -1,10 +1,10 @@
 //! Wrapper around tiny-keccak crate as well as common hash constants.
 
 use std::io;
-use sha3_ext::tiny_keccak::Keccak;
-use sha3_ext::hash::H256;
+use tiny_keccak::Keccak;
+use bigint::hash::H256;
 use sha3_ext::sha3_256;
-use hash::H256 as Hash256;
+use bigint::hash::H256 as Hash256;
 
 /// Get the SHA3 (i.e. Keccak) hash of the empty bytes string.
 pub const SHA3_EMPTY: H256 = H256([0xc5, 0xd2, 0x46, 0x01, 0x86, 0xf7, 0x23, 0x3c, 0x92, 0x7e,
