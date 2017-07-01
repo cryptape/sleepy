@@ -1,5 +1,4 @@
 extern crate util;
-extern crate time;
 extern crate crypto;
 extern crate bigint;
 extern crate chain;
@@ -19,10 +18,11 @@ use bigint::uint::U256;
 use util::Hashable;
 use std::sync::Arc;
 use network::connection::Operation;
-use network::config::SleepyConfig;
+use util::config::SleepyConfig;
 use bincode::{serialize, deserialize, Infinite};
 use parking_lot::RwLock;
 use network::msgclass::MsgClass;
+use util::timestamp_now;
 
 pub fn start_miner(tx: Sender<(u32, Operation, Vec<u8>)>,
                    chain: Arc<Chain>,
@@ -34,8 +34,7 @@ pub fn start_miner(tx: Sender<(u32, Operation, Vec<u8>)>,
     thread::spawn(move || {
         info!("start mining!");
         loop {
-            let now = time::now().to_timespec();
-            let t: u64 = (now.sec * 10 + now.nsec as i64 / 100000000) as u64;
+            let t: u64 = timestamp_now();
             let miner_privkey = {
                 config.read().get_miner_private_key()
             };

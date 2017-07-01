@@ -6,23 +6,16 @@ extern crate rustc_serialize;
 extern crate serde_json;
 extern crate tiny_keccak;
 extern crate bigint;
+extern crate time;
+
+pub mod error;
+pub mod config;
 
 mod sha3;
-pub mod error;
 
 pub use sha3::*;
 
-trait AsMillis {
-    fn as_millis(&self) -> u64;
-}
-
-impl AsMillis for std::time::Duration {
-    fn as_millis(&self) -> u64 {
-        self.as_secs() * 1_000 + (self.subsec_nanos() / 1_000_000) as u64
-    }
-}
-
 pub fn timestamp_now() -> u64 {
-    use AsMillis;
-    ::std::time::UNIX_EPOCH.elapsed().unwrap().as_millis()
+    let now = time::now().to_timespec();
+    (now.sec * 10 + now.nsec as i64 / 100000000) as u64
 }

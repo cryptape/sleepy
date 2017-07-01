@@ -16,7 +16,6 @@ extern crate chain;
 extern crate serde_derive;
 extern crate bigint;
 
-pub mod config;
 pub mod server;
 pub mod connection;
 pub mod protocol;

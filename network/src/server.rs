@@ -7,7 +7,7 @@ use futures::future::result;
 use tokio_proto::TcpServer;
 use tokio_service::Service;
 
-use config::SleepyConfig;
+use util::config::SleepyConfig;
 use protocol::{SleepyProto, SleepyRequest, SleepyResponse};
 use msghandle::net_msg_handler;
 
