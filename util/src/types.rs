@@ -38,7 +38,8 @@ struct ChainImpl {
     current_hash: H256,
 }
 
-//select main
+//TODO maintenance longest chain
+//fetch miss parent
 impl Chain {
     pub fn init() -> Self {
         Chain {
@@ -61,13 +62,16 @@ impl Chain {
             return Ok(());
         }
 
-        if bh != guard.current_height + 1 {
+        if bh > guard.current_height + 1 {
             return Err(Error::InvalidHeight);
+        }
+
+        if bh == guard.current_height + 1 {
+            guard.current_height = bh;
         }
 
         guard.blocks.insert(hash, block);
 
-        guard.current_height = bh;
         let forks = {
             let forks = guard.forks.entry(bh).or_insert_with(Vec::new);
             forks.push(hash);
