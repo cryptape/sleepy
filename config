@@ -1,9 +1,17 @@
-id_card=0
-port = 40000
-max_peer = 1
-private_key = "5a39ed1020c04d4d84539975b893a4e7c53eab6c2965db8bc3468093a31bc5ae"
+id_card = 0
+port = 4000
+max_peer = 3
+duration = 6
+hz = 10
+miner_private_key = "40f2d8f8e1594579824fd04edfc7ff1ddffd6be153b23f4318e1acff037d3ea9"
+signer_private_key = "9c70d613d88686c29d4af9b77dbbc290ca4a71124019406e582bde9338d3e6a8"
 [[peers]]
-id_card=0
+id_card = 0
 ip = "127.0.0.1"
-port = 40000
-public_key = "5a39ed1020c04d4d84539975b893a4e7c53eab6c2965db8bc3468093a31bc5ae"
+port = 4000
+[[keygroups]]
+miner_public_key = "3e7eb48849e184dbcdc827e7208fa7bed9babed5b5d7f79e03133c1fa78277b0b724c3b077bd2a21bb96cda03fc9ae392c2c7ff4b7082669b4b86a3da259f6d7"
+signer_public_key = "de0bb9b3178c3c739482c441f0a82f657a772f4c229d6caa4bad727ea01162aac56a4eacc4656dbafbcaba1afd4d797749ca54ea2fc690ea8b4860fac0f0c043"
+[[keygroups]]
+miner_public_key = "3e7eb48849e184dbcdc827e7208fa7bed9babed5b5d7f79e03133c1fa78277b0b724c3b077bd2a21bb96cda03fc9ae392c2c7ff4b7082669b4b86a3da259f6d7"
+signer_public_key = "de0bb9b3178c3c739482c441f0a82f657a772f4c229d6caa4bad727ea01162aac56a4eacc4656dbafbcaba1afd4d797749ca54ea2fc690ea8b4860fac0f0c043"
