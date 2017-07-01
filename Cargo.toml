@@ -16,5 +16,6 @@ time = "0.1"
 network = { path = "./network" }
 miner = { path = "./miner" }
 util = { path = "./util" }
+chain = { path = "./chain" }
 crypto = { path = "./crypto" }
 bincode = "0.8.0"

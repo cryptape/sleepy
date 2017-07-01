@@ -7,13 +7,14 @@ extern crate time;
 extern crate bincode;
 extern crate util;
 extern crate crypto;
+extern crate chain;
 extern crate miner;
 
 use env_logger::LogBuilder;
 use std::env;
 use log::{LogLevelFilter, LogRecord};
 use network::config::SleepyConfig;
-use network::server::{start_server};
+use network::server::start_server;
 use network::connection::{start_client, Operation};
 use std::sync::mpsc::channel;
 use clap::App;
@@ -21,7 +22,7 @@ use std::time::Duration;
 use std::thread;
 use bincode::{serialize, deserialize, Infinite};
 use miner::start_miner;
-use util::types::{Block, Chain};
+use chain::{Block, Chain};
 use std::sync::Arc;
 
 pub fn log_init() {
@@ -82,12 +83,16 @@ fn main() {
     let chain = Arc::new(chain);
 
     // start miner
-    start_miner(ctx.clone(), chain, config.private_key.unwrap(), config.id_card.unwrap());
+    start_miner(ctx.clone(),
+                chain,
+                config.private_key.unwrap(),
+                config.id_card.unwrap());
 
     loop {
         let (origin, msg) = srx.recv().unwrap();
         info!("get msg {:?} from {}", msg, origin);
         thread::sleep(Duration::from_millis(1000));
-        ctx.send((origin, Operation::BROADCAST, [1,2,3,4].to_vec())).unwrap();
+        ctx.send((origin, Operation::BROADCAST, [1, 2, 3, 4].to_vec()))
+            .unwrap();
     }
 }
