@@ -7,7 +7,7 @@ use std::convert::AsRef;
 use std::sync::Arc;
 use std::io::prelude::*;
 use std::net::TcpStream;
-use config;
+use util::config;
 use std::sync::mpsc::Receiver;
 
 const TIMEOUT: u64 = 15;

@@ -13,7 +13,7 @@ extern crate parking_lot;
 use env_logger::LogBuilder;
 use std::env;
 use log::{LogLevelFilter, LogRecord};
-use network::config::SleepyConfig;
+use util::config::SleepyConfig;
 use network::server::{start_server};
 use network::connection::{start_client, Operation};
 use std::sync::mpsc::channel;

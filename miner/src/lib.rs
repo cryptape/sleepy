@@ -18,7 +18,7 @@ use bigint::uint::U256;
 use util::Hashable;
 use std::sync::Arc;
 use network::connection::Operation;
-use network::config::SleepyConfig;
+use util::config::SleepyConfig;
 use bincode::{serialize, deserialize, Infinite};
 use parking_lot::RwLock;
 

@@ -12,6 +12,7 @@ extern crate bigint;
 
 pub mod types;
 pub mod error;
+pub mod config;
 mod sha3;
 
 pub use sha3::*;

@@ -4,6 +4,7 @@ version = "0.1.0"
 authors = []
 
 [dependencies]
+toml = "0.4"
 sha3 = { path = "./sha3"}
 bigint = { path = "./bigint"}
 serde = "1.0"
