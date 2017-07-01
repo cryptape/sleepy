@@ -92,7 +92,7 @@ impl SignedBlock {
     pub fn verify(&self) -> bool {
         let encoded: Vec<u8> = serialize(&self, Infinite).unwrap();
         let sign_hash = encoded.sha3();
-        match crypto_vefify(&self.singer, &self.signature, &sign_hash) {
+        match crypto_vefify(&self.singer, &self.signature.into(), &sign_hash) {
             Ok(ret) => ret,
             _ => false,
         }

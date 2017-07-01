@@ -8,7 +8,6 @@ use secp256k1::key::{SecretKey, PublicKey};
 use rustc_serialize::hex::{ToHex, FromHex};
 use bigint::hash::{H520, H256};
 use super::{PrivKey, PubKey, SECP256K1, Error, Message, pubkey_to_address, Address};
-use bigint::hash::{H256 as Hash256, H520 as Hash520};
 
 pub struct Signature(pub [u8; 65]);
 
@@ -39,19 +38,19 @@ impl Signature {
 
     /// Check if this is a "low" signature.
     pub fn is_low_s(&self) -> bool {
-        Hash256::from_slice(self.s()) <=
+        H256::from_slice(self.s()) <=
         "7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0".into()
     }
 
     /// Check if each component of the signature is in range.
     pub fn is_valid(&self) -> bool {
         self.v() <= 1 &&
-        Hash256::from_slice(self.r()) <
+        H256::from_slice(self.r()) <
         "fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141".into() &&
-        Hash256::from_slice(self.r()) >= 1.into() &&
-        Hash256::from_slice(self.s()) <
+        H256::from_slice(self.r()) >= 1.into() &&
+        H256::from_slice(self.s()) <
         "fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141".into() &&
-        Hash256::from_slice(self.s()) >= 1.into()
+        H256::from_slice(self.s()) >= 1.into()
     }
 }
 
@@ -106,7 +105,7 @@ impl Default for Signature {
 
 impl Hash for Signature {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        Hash520::from(self.0).hash(state);
+        H520::from(self.0).hash(state);
     }
 }
 
@@ -130,7 +129,7 @@ impl Into<[u8; 65]> for Signature {
 
 impl From<Signature> for H520 {
     fn from(s: Signature) -> Self {
-        Hash520::from(s.0).into()
+        H520::from(s.0).into()
     }
 }
 
@@ -158,7 +157,8 @@ pub fn sign(privkey: &PrivKey, message: &Message) -> Result<Signature, Error> {
     let context = &SECP256K1;
     // no way to create from raw byte array.
     let sec: &SecretKey = unsafe { mem::transmute(privkey) };
-    let s = context.sign_recoverable(&SecpMessage::from_slice(&message.0[..])?, sec)?;
+    let s = context
+        .sign_recoverable(&SecpMessage::from_slice(&message.0[..])?, sec)?;
     let (rec_id, data) = s.serialize_compact(context);
     let mut data_arr = [0; 65];
 
@@ -206,7 +206,8 @@ pub fn recover(signature: &Signature, message: &Message) -> Result<PubKey, Error
     let rsig = RecoverableSignature::from_compact(context,
                                                   &signature[0..64],
                                                   RecoveryId::from_i32(signature[64] as i32)?)?;
-    let publ = context.recover(&SecpMessage::from_slice(&message.0[..])?, &rsig)?;
+    let publ = context
+        .recover(&SecpMessage::from_slice(&message.0[..])?, &rsig)?;
     let serialized = publ.serialize_vec(context, false);
 
     let mut pubkey = PubKey::default();
