@@ -41,6 +41,11 @@ impl SleepyConfig {
         toml::from_str(&content).unwrap()
     }
 
+    pub fn timestamp_now(&self) -> u64 {
+        let now = time::now().to_timespec();
+        (now.sec * self.hz + now.nsec as i64 / 1000000000 * self.hz) as u64
+    }
+
     pub fn getid(&self) -> u32 {
         self.id_card
     }

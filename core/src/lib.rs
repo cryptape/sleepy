@@ -1,4 +1,5 @@
 extern crate util;
+extern crate chain;
 extern crate time;
 extern crate crypto;
 extern crate bigint;

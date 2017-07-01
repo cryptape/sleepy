@@ -6,9 +6,20 @@ use bigint::uint::U256;
 
 pub struct Sleepy {
     /// sleepy config
-    config: SleepyConfig,
+    config: Arc<RwLock<SleepyConfig>>,
 }
 
 impl Sleepy {
-    
+    pub fn new(config: Arc<RwLock<SleepyConfig>>) -> Self {
+		Arc::new(Sleepy {
+			config: config.clone(),
+		})
+	}
+
+    fn verify_block_basic(&self, sigblk: &SignedBlock) -> result::Result<(), Error> {
+        let block = sigblk.block;
+        let 
+        
+    }
+
 }

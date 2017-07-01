@@ -5,6 +5,7 @@ authors = []
 
 [dependencies]
 util = { path = "../util" }
+chain = { path = "../chain" }
 bigint = {path = "../util/bigint"}
 crypto = {path = "../crypto"}
 bincode = "0.8.0"
