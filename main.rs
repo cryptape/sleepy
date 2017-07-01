@@ -8,6 +8,7 @@ extern crate bincode;
 extern crate util;
 extern crate crypto;
 extern crate miner;
+extern crate parking_lot;
 
 use env_logger::LogBuilder;
 use std::env;
@@ -23,6 +24,7 @@ use bincode::{serialize, deserialize, Infinite};
 use miner::start_miner;
 use util::types::{Block, Chain};
 use std::sync::Arc;
+use parking_lot::RwLock;
 
 pub fn log_init() {
     let format = |record: &LogRecord| {
@@ -82,7 +84,8 @@ fn main() {
     let chain = Arc::new(chain);
 
     // start miner
-    start_miner(ctx.clone(), chain, config.private_key.unwrap(), config.id_card.unwrap());
+    let config = Arc::new(RwLock::new(config));
+    start_miner(ctx.clone(), chain, config);
 
     loop {
         let (origin, msg) = srx.recv().unwrap();

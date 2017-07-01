@@ -18,3 +18,4 @@ miner = { path = "./miner" }
 util = { path = "./util" }
 crypto = { path = "./crypto" }
 bincode = "0.8.0"
+parking_lot = "0.4"
