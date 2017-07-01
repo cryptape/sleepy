@@ -4,6 +4,7 @@ extern crate serde;
 extern crate serde_derive;
 extern crate rustc_serialize;
 extern crate serde_json;
+extern crate rand;
 extern crate tiny_keccak;
 extern crate bigint;
 extern crate time;

@@ -3,30 +3,33 @@ extern crate toml;
 use std::io::prelude::*;
 use std::fs::File;
 use std::io::BufReader;
-use bigint::hash::{H256, H512}; 
+use bigint::hash::{H256, H512};
+use bigint::uint::U256;
 
 #[derive(Debug, Deserialize)]
 pub struct SleepyConfig {
-    pub id_card:Option<u32>,
-    pub port: Option<u64>,
-    pub max_peer: Option<u64>,
-    pub miner_private_key: Option<H256>,
-    pub signer_private_key: Option<H256>,
-    pub peers: Option<Vec<PeerConfig>>,
-    pub keygroups: Option<Vec<KeyGroup>>,
+    pub id_card: u32,
+    pub port: u64,
+    pub max_peer: u64,
+    pub duration: u64,
+    pub hz: u64,
+    pub miner_private_key: H256,
+    pub signer_private_key: H256,
+    pub peers: Vec<PeerConfig>,
+    pub keygroups: Vec<KeyGroup>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct PeerConfig {
-    pub id_card:Option<u32>,
-    pub ip: Option<String>,
-    pub port: Option<u64>,
+    pub id_card: u32,
+    pub ip: String,
+    pub port: u64,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct KeyGroup {
-    pub miner_public_key: Option<H512>,
-    pub signer_public_key: Option<H512>,
+    pub miner_public_key: H512,
+    pub signer_public_key: H512,
 }
 
 impl SleepyConfig {
@@ -39,26 +42,30 @@ impl SleepyConfig {
     }
 
     pub fn getid(&self) -> u32 {
-        self.id_card.unwrap()
+        self.id_card
     }
 
     pub fn get_miner_private_key(&self) -> H256 {
-        self.miner_private_key.unwrap()
+        self.miner_private_key
     }
 
     pub fn get_signer_private_key(&self) -> H256 {
-        self.signer_private_key.unwrap()
+        self.signer_private_key
+    }
+
+    pub fn get_difficulty(&self) -> U256 {
+        (U256::max_value() / U256::from(self.max_peer * self.duration * self.hz)).into()
     }
 
     pub fn set_signer_private_key(&mut self, private_key: H256) {
-        self.signer_private_key = Some(private_key);
+        self.signer_private_key = private_key;
     }
 
     pub fn check_keys(&self, minerkey: H512, signerkey: H512) -> bool {
-        let keygroups = self.keygroups.as_ref().unwrap();
+        let keygroups: &[KeyGroup] = self.keygroups.as_ref();
         for keys in keygroups {
-            if keys.miner_public_key.unwrap() == minerkey {
-                return keys.signer_public_key.unwrap() == signerkey
+            if keys.miner_public_key == minerkey {
+                return keys.signer_public_key == signerkey
             }
         }
 
@@ -66,10 +73,10 @@ impl SleepyConfig {
     }
 
     pub fn replace_signerkey(&mut self, oldkey: H512, newkey: H512) {
-        let keygroups = self.keygroups.as_mut().unwrap();
+        let keygroups: &mut [KeyGroup] = self.keygroups.as_mut();
         for keys in keygroups {
-            if keys.signer_public_key.unwrap() == oldkey {
-                keys.signer_public_key = Some(newkey)
+            if keys.signer_public_key == oldkey {
+                keys.signer_public_key = newkey;
             }
         }
     }
@@ -85,6 +92,8 @@ mod test {
             id_card = 0
             port = 40000
             max_peer = 2
+            hz = 10
+            duration = 6
             miner_private_key = "5a39ed1020c04d4d84539975b893a4e7c53eab6c2965db8bc3468093a31bc5ae"
             signer_private_key = "5a39ed1020c04d4d84539975b893a4e7c53eab6c2965db8bc3468093a31bc5ae"
             [[peers]]
@@ -105,7 +114,7 @@ mod test {
 
         let value: SleepyConfig = toml::from_str(toml).unwrap();
         println!("{:?}", value);
-        assert_eq!(value.port, Some(40000));
+        assert_eq!(value.port, 40000);
     }
 }
 
