@@ -82,11 +82,8 @@ fn main() {
     let chain = Arc::new(chain);
 
     // start miner
-    let (mtx, mrx) = channel();
-    start_miner(mtx, chain, config.private_key.unwrap());
+    start_miner(ctx.clone(), chain, config.private_key.unwrap(), config.id_card.unwrap());
 
-    thread::sleep(Duration::from_millis(3000));
-    ctx.send((0, Operation::BROADCAST, [1,2,3,4].to_vec())).unwrap();
     loop {
         let (origin, msg) = srx.recv().unwrap();
         info!("get msg {:?} from {}", msg, origin);
