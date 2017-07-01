@@ -17,7 +17,7 @@ use bincode::{serialize, deserialize, Infinite};
 use rand::{thread_rng, Rng};
 use util::Hashable;
 use util::timestamp_now;
-use crypto::{KeyPair, sign as crypto_sign};
+use crypto::{KeyPair, sign as crypto_sign, verify_public as crypto_vefify};
 use std::sync::mpsc::{Sender, channel};
 use std::thread;
 use std::sync::Arc;
@@ -88,6 +88,17 @@ impl Block {
     }
 }
 
+impl SignedBlock {
+    pub fn verify(&self) -> bool {
+        let encoded: Vec<u8> = serialize(&self, Infinite).unwrap();
+        let sign_hash = encoded.sha3();
+        match crypto_vefify(&self.singer, &self.signature, &sign_hash) {
+            Ok(ret) => ret,
+            _ => false,
+        }
+    }
+}
+
 impl ::std::ops::Deref for SignedBlock {
     type Target = Block;
 
@@ -135,7 +146,7 @@ impl Chain {
                              });
         let mario = chain.clone();
         thread::spawn(move || loop {
-                          info!("maintenance!");
+                          info!("mario maintenance!");
                           let height = receiver.recv().unwrap();
                           mario.maintenance(height);
                       });
