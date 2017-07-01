@@ -19,3 +19,4 @@ util = { path = "./util" }
 chain = { path = "./chain" }
 crypto = { path = "./crypto" }
 bincode = "0.8.0"
+parking_lot = "0.4"

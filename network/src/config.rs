@@ -3,15 +3,17 @@ extern crate toml;
 use std::io::prelude::*;
 use std::fs::File;
 use std::io::BufReader;
-use bigint::hash::H256; 
+use bigint::hash::{H256, H512}; 
 
 #[derive(Debug, Deserialize)]
 pub struct SleepyConfig {
     pub id_card:Option<u32>,
     pub port: Option<u64>,
     pub max_peer: Option<u64>,
-    pub private_key: Option<H256>,
+    pub miner_private_key: Option<H256>,
+    pub signer_private_key: Option<H256>,
     pub peers: Option<Vec<PeerConfig>>,
+    pub keygroups: Option<Vec<KeyGroup>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -19,7 +21,12 @@ pub struct PeerConfig {
     pub id_card:Option<u32>,
     pub ip: Option<String>,
     pub port: Option<u64>,
-    pub public_key: Option<H256>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct KeyGroup {
+    pub miner_public_key: Option<H512>,
+    pub signer_public_key: Option<H512>,
 }
 
 impl SleepyConfig {
@@ -29,6 +36,42 @@ impl SleepyConfig {
         let mut content = String::new();
         fconfig.read_to_string(&mut content).unwrap();
         toml::from_str(&content).unwrap()
+    }
+
+    pub fn getid(&self) -> u32 {
+        self.id_card.unwrap()
+    }
+
+    pub fn get_miner_private_key(&self) -> H256 {
+        self.miner_private_key.unwrap()
+    }
+
+    pub fn get_signer_private_key(&self) -> H256 {
+        self.signer_private_key.unwrap()
+    }
+
+    pub fn set_signer_private_key(&mut self, private_key: H256) {
+        self.signer_private_key = Some(private_key);
+    }
+
+    pub fn check_keys(&self, minerkey: H512, signerkey: H512) -> bool {
+        let keygroups = self.keygroups.as_ref().unwrap();
+        for keys in keygroups {
+            if keys.miner_public_key.unwrap() == minerkey {
+                return keys.signer_public_key.unwrap() == signerkey
+            }
+        }
+
+        false
+    }
+
+    pub fn replace_signerkey(&mut self, oldkey: H512, newkey: H512) {
+        let keygroups = self.keygroups.as_mut().unwrap();
+        for keys in keygroups {
+            if keys.signer_public_key.unwrap() == oldkey {
+                keys.signer_public_key = Some(newkey)
+            }
+        }
     }
 }
 
@@ -42,17 +85,22 @@ mod test {
             id_card = 0
             port = 40000
             max_peer = 2
-            private_key = "5a39ed1020c04d4d84539975b893a4e7c53eab6c2965db8bc3468093a31bc5ae"
+            miner_private_key = "5a39ed1020c04d4d84539975b893a4e7c53eab6c2965db8bc3468093a31bc5ae"
+            signer_private_key = "5a39ed1020c04d4d84539975b893a4e7c53eab6c2965db8bc3468093a31bc5ae"
             [[peers]]
             id_card = 1
             ip = "127.0.0.1"
             port = 40001
-            public_key = "5a39ed1020c04d4d84539975b893a4e7c53eab6c2965db8bc3468093a31bc5ae"
             [[peers]]
             id_card = 2
             ip = "127.0.0.1"
             port = 40002
-            public_key = "5a39ed1020c04d4d84539975b893a4e7c53eab6c2965db8bc3468093a31bc5ae"
+            [[keygroups]]
+            miner_public_key = "5a39ed1020c04d4d84539975b893a4e7c53eab6c2965db8bc3468093a31bc5ae5a39ed1020c04d4d84539975b893a4e7c53eab6c2965db8bc3468093a31bc5ae"
+            signer_public_key = "5a39ed1020c04d4d84539975b893a4e7c53eab6c2965db8bc3468093a31bc5ae5a39ed1020c04d4d84539975b893a4e7c53eab6c2965db8bc3468093a31bc5ae"
+            [[keygroups]]
+            miner_public_key = "5a39ed1020c04d4d84539975b893a4e7c53eab6c2965db8bc3468093a31bc5ae5a39ed1020c04d4d84539975b893a4e7c53eab6c2965db8bc3468093a31bc5ae"
+            signer_public_key = "5a39ed1020c04d4d84539975b893a4e7c53eab6c2965db8bc3468093a31bc5ae5a39ed1020c04d4d84539975b893a4e7c53eab6c2965db8bc3468093a31bc5ae"
         "#;
 
         let value: SleepyConfig = toml::from_str(toml).unwrap();

@@ -7,44 +7,57 @@ extern crate chain;
 extern crate log;
 extern crate network;
 extern crate bincode;
+extern crate parking_lot;
 
 use std::sync::mpsc::Sender;
 use chain::{Block, Chain};
 use std::thread;
 use std::time::Duration;
-use crypto::{PrivKey, sign};
+use crypto::{PrivKey, sign, KeyPair};
 use bigint::hash::{H256, H520, H512};
 use bigint::uint::U256;
 use util::Hashable;
 use std::sync::Arc;
 use network::connection::Operation;
+use network::config::SleepyConfig;
 use bincode::{serialize, deserialize, Infinite};
+use parking_lot::RwLock;
+use network::msgclass::MsgClass;
 
 pub fn start_miner(tx: Sender<(u32, Operation, Vec<u8>)>,
                    chain: Arc<Chain>,
-                   privkey: PrivKey,
-                   id: u32) {
+                   config: Arc<RwLock<SleepyConfig>>) {
     let difficulty: H256 = (U256::max_value() / U256::from(4 * 6 * 10)).into();
     let tx = tx.clone();
     let chain = chain.clone();
-    let privkey = privkey.clone();
+    let config = config.clone();
     thread::spawn(move || {
         info!("start mining!");
         loop {
             let now = time::now().to_timespec();
             let t: u64 = (now.sec * 10 + now.nsec as i64 / 100000000) as u64;
-            let sig: H520 = sign(&privkey, &H256::from(t)).unwrap().into();
+            let miner_privkey = {
+                config.read().get_miner_private_key()
+            };
+            let sig: H520 = sign(&miner_privkey, &H256::from(t)).unwrap().into();
             let hash = sig.sha3();
             if hash < difficulty {
                 loop {
                     let (h, pre_hash) = chain.get_status();
                     let blk = Block::new(h + 1, t, pre_hash, H512::zero(), sig.into());
-                    let message = serialize(&blk, Infinite).unwrap();
-                    if chain.insert(blk).is_ok() {
+
+
+                    let (id, signer_privkey) = {
+                        let guard = config.read();
+                        (guard.getid(), guard.get_signer_private_key())
+                    };
+                    let keypair = KeyPair::from_privkey(signer_privkey).unwrap();
+                    let signed_blk = blk.sign(&keypair);
+                    if chain.insert(&signed_blk).is_ok() {
                         info!("get a block {} {}", h + 1, t);
-                        let sig: H520 = sign(&privkey, &message.sha3()).unwrap().into();
-                        let msg = serialize(&(message, sig), Infinite).unwrap();
-                        tx.send((id, Operation::BROADCAST, msg)).unwrap();
+                        let msg = MsgClass::BLOCK(signed_blk);
+                        let message = serialize(&msg, Infinite).unwrap();
+                        tx.send((id, Operation::BROADCAST, message)).unwrap();
                         break;
                     }
                 }

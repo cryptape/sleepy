@@ -11,6 +11,7 @@ extern crate byteorder;
 extern crate parking_lot;
 extern crate util;
 extern crate serde;
+extern crate chain;
 #[macro_use]
 extern crate serde_derive;
 extern crate bigint;
@@ -19,4 +20,5 @@ pub mod config;
 pub mod server;
 pub mod connection;
 pub mod protocol;
+pub mod msgclass;
 pub mod msghandle;
