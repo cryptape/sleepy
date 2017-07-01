@@ -82,7 +82,6 @@ fn main() {
 
     // init chain
     let chain = Chain::init();
-    let chain = Arc::new(chain);
 
     // start miner
     let config = Arc::new(RwLock::new(config));

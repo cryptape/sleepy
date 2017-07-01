@@ -45,15 +45,12 @@ impl Service for Server {
 
 pub fn start_server(config: &SleepyConfig, tx: Sender<(u32, SleepyRequest)>) {
     let mysender = MySender::new(tx);
-    let addr = format!("0.0.0.0:{}", config.port.unwrap());
+    let addr = format!("0.0.0.0:{}", config.port);
     let addr = addr.parse::<SocketAddr>().unwrap();
 
     thread::spawn(move || {
                       info!("start server on {:?}!", addr);
-                      TcpServer::new(SleepyProto, addr).serve(move || {
-                                                                Ok(Server {
-                                                                       mysender: mysender.clone(),
-                                                                   })
-                                                            });
+                      TcpServer::new(SleepyProto, addr)
+                          .serve(move || Ok(Server { mysender: mysender.clone() }));
                   });
 }

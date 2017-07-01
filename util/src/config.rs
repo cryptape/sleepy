@@ -65,7 +65,7 @@ impl SleepyConfig {
         let keygroups: &[KeyGroup] = self.keygroups.as_ref();
         for keys in keygroups {
             if keys.miner_public_key == minerkey {
-                return keys.signer_public_key == signerkey
+                return keys.signer_public_key == signerkey;
             }
         }
 
@@ -117,5 +117,3 @@ mod test {
         assert_eq!(value.port, 40000);
     }
 }
-
-

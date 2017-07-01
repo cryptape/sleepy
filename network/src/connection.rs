@@ -30,12 +30,12 @@ pub struct Connection {
 
 impl Connection {
     pub fn new(config: &config::SleepyConfig) -> Self {
-        let peers = config.peers.as_ref().unwrap();
-        let id_card = config.id_card.unwrap();
+        let peers = &config.peers;
+        let id_card = config.id_card;
         let mut peers_pair = Vec::default();
         for peer in peers.iter() {
-            let id_card: u32 = peer.id_card.unwrap();
-            let addr = format!("{}:{}", peer.ip.clone().unwrap(), peer.port.unwrap());
+            let id_card: u32 = peer.id_card;
+            let addr = format!("{}:{}", peer.ip.clone(), peer.port);
             let addr = addr.parse::<SocketAddr>().unwrap();
             peers_pair.push((id_card, addr, Arc::new(RwLock::new(None))));
         }
@@ -122,12 +122,12 @@ pub fn start_client(config: &config::SleepyConfig, rx: Receiver<(u32, Operation,
     let con = Connection::new(config);
     do_connect(&con);
     thread::spawn(move || {
-        info!("start client!");
-        loop {
-            let (origin, op, msg) = rx.recv().unwrap();
-            broadcast(&con, msg, origin, op);
-        }
-    });
+                      info!("start client!");
+                      loop {
+                          let (origin, op, msg) = rx.recv().unwrap();
+                          broadcast(&con, msg, origin, op);
+                      }
+                  });
 }
 
 #[cfg(test)]

@@ -6,9 +6,11 @@ extern crate serde_derive;
 extern crate parking_lot;
 extern crate rand;
 extern crate bigint;
+#[macro_use]
+extern crate log;
 extern crate bincode;
 
-use parking_lot::RwLock;
+use parking_lot::{Mutex, RwLock};
 use bigint::hash::{H256, H520, H512};
 use std::collections::{BTreeMap, HashMap, HashSet};
 use bincode::{serialize, deserialize, Infinite};
@@ -16,7 +18,9 @@ use rand::{thread_rng, Rng};
 use util::Hashable;
 use util::timestamp_now;
 use crypto::{KeyPair, sign as crypto_sign};
-
+use std::sync::mpsc::{Sender, channel};
+use std::thread;
+use std::sync::Arc;
 
 #[derive(Debug)]
 pub enum Error {
@@ -96,6 +100,7 @@ impl ::std::ops::Deref for SignedBlock {
 #[derive(Debug)]
 pub struct Chain {
     inner: RwLock<ChainImpl>,
+    sender: Mutex<Sender<u64>>,
 }
 
 #[derive(Debug)]
@@ -113,19 +118,28 @@ struct ChainImpl {
 //TODO maintenance longest chain
 //fetch miss parent
 impl Chain {
-    pub fn init() -> Self {
-        Chain {
-            inner: RwLock::new(ChainImpl {
-                                   blocks: HashMap::new(),
-                                   timestamp_future: BTreeMap::new(),
-                                   height_future: BTreeMap::new(),
-                                   parent_future: BTreeMap::new(),
-                                   forks: BTreeMap::new(),
-                                   main: HashMap::new(),
-                                   current_height: 0,
-                                   current_hash: H256::zero(),
-                               }),
-        }
+    pub fn init() -> Arc<Self> {
+        let (sender, receiver) = channel();
+        let chain = Arc::new(Chain {
+                                 inner: RwLock::new(ChainImpl {
+                                                        blocks: HashMap::new(),
+                                                        timestamp_future: BTreeMap::new(),
+                                                        height_future: BTreeMap::new(),
+                                                        parent_future: BTreeMap::new(),
+                                                        forks: BTreeMap::new(),
+                                                        main: HashMap::new(),
+                                                        current_height: 0,
+                                                        current_hash: H256::zero(),
+                                                    }),
+                                 sender: Mutex::new(sender),
+                             });
+        let mario = chain.clone();
+        thread::spawn(move || loop {
+                          info!("maintenance!");
+                          let height = receiver.recv().unwrap();
+                          mario.maintenance(height);
+                      });
+        chain
     }
 
     pub fn insert(&self, block: &SignedBlock) -> Result<(), Error> {
@@ -188,4 +202,7 @@ impl Chain {
         let guard = self.inner.read();
         (guard.current_height, guard.current_hash)
     }
+
+
+    fn maintenance(&self, height: u64) {}
 }
