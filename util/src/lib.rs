@@ -11,6 +11,7 @@ extern crate tiny_keccak;
 extern crate bigint;
 
 pub mod types;
+pub mod error;
 mod sha3;
 
 pub use sha3::*;
