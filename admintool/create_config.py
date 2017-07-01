@@ -25,12 +25,12 @@ def make_config():
 	secret_path = os.path.join(path, "miner_privkey")
 	secret_key = open(secret_path, "r")
 	key = secret_key.read()
-	f.write("miner_private_key = " + key + "\n")
+	f.write("miner_private_key = \"" + key + "\"\n")
 	secret_path = os.path.join(path, "signer_privkey")
 	secret_key = open(secret_path, "r")
 	key = secret_key.read()
 	secret_key.close()
-	f.write("signer_private_key = " + key + "\n")
+	f.write("signer_private_key = \"" + key + "\"\n")
 	ids=range(size)
 	ip_list = zip(ids, ip_list)
 	del ip_list[nid]
@@ -50,13 +50,13 @@ def make_config():
 	miner_auth = open(miner_auth_path, "r")
 
 	while True:
-		signer_key = signer_auth.readline()
-		miner_key = miner_auth.readline()
+		signer_key = signer_auth.readline().strip('\n')
+		miner_key = miner_auth.readline().strip('\n')
 		if (not signer_key) or (not miner_key):
 			break
 		f.write("[[keygroups]]" + "\n")
-		f.write("miner_public_key = " + miner_key)
-		f.write("signer_public_key = " + signer_key)
+		f.write("miner_public_key = \"" + miner_key + "\"\n")
+		f.write("signer_public_key = \"" + signer_key + "\"\n")
 
 	signer_auth.close()
 	miner_auth.close()

@@ -77,7 +77,7 @@ for ((ID=0;ID<$SIZE;ID++))
 do
     echo "Start creating Node " $ID " env!"
 	echo "Start copy binary and migrations for Node " $ID "!"
-	cp -rf $DATA_PATH/../target/debug/sleepy $DATA_PATH/node$ID/
+	cp -rf $DATA_PATH/../../target/debug/sleepy $DATA_PATH/node$ID/
 done
 echo "********************************************************"
 echo "WARN: remember then delete all privkey files!!!"
