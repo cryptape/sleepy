@@ -104,13 +104,13 @@ fn main() {
                     match ret {
                         Ok(_) => {
                             let message = serialize(&MsgClass::BLOCK(blk), Infinite).unwrap();
-                            ctx.send((origin, Operation::SINGLE, message)).unwrap();
+                            ctx.send((origin, Operation::SUBTRACT, message)).unwrap();
                         },
                         Err(err) => {
                             if err == Error::MissParent {
                                 let message = serialize(&MsgClass::SYNCREQ(blk.pre_hash), Infinite).unwrap();
                                 ctx.send((origin, Operation::SINGLE, message)).unwrap();
-                            }                          
+                            }
                         },
                     }
                 }
