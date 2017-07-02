@@ -231,7 +231,7 @@ impl Chain {
                         main.insert(start_bh, block.pre_hash);
                         loop {
                             let block = blocks.get(&block.pre_hash).cloned().unwrap();
-                            let start_bh = start_bh - 1;
+                            start_bh -= 1;
                             if main.get(&start_bh) == Some(&block.pre_hash) {
                                 break;
                             }
