@@ -215,6 +215,10 @@ impl Chain {
                 *current_height = bh;
                 *current_hash = hash;
                 main.insert(bh, hash);
+                info!("insert a block {:?} {:?} {:?}",
+                      bh,
+                      hash,
+                      block.proof.timestamp);
                 let forks = forks.entry(bh).or_insert_with(Vec::new);
                 forks.push(hash);
                 // tmp impl:  rand pick a fork

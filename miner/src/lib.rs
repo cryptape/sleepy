@@ -27,7 +27,9 @@ use util::timestamp_now;
 pub fn start_miner(tx: Sender<(u32, Operation, Vec<u8>)>,
                    chain: Arc<Chain>,
                    config: Arc<RwLock<SleepyConfig>>) {
-    let difficulty: H256 = {config.read().get_difficulty().into()};
+    let difficulty: H256 = {
+        config.read().get_difficulty().into()
+    };
     let tx = tx.clone();
     let chain = chain.clone();
     let config = config.clone();
@@ -38,13 +40,15 @@ pub fn start_miner(tx: Sender<(u32, Operation, Vec<u8>)>,
             let miner_privkey = {
                 config.read().get_miner_private_key()
             };
-            let sig: H520 = sign(&miner_privkey, &H256::from(t)).unwrap().into();
+            let miner_keypair = KeyPair::from_privkey(miner_privkey).unwrap();
+            let sig: H520 = sign(miner_keypair.privkey(), &H256::from(t))
+                .unwrap()
+                .into();
             let hash = sig.sha3();
             if hash < difficulty {
                 loop {
                     let (h, pre_hash) = chain.get_status();
-                    let blk = Block::new(h + 1, t, pre_hash, H512::zero(), sig.into());
-
+                    let blk = Block::new(h + 1, t, pre_hash, *miner_keypair.pubkey(), sig.into());
 
                     let (id, signer_privkey) = {
                         let guard = config.read();
@@ -53,9 +57,7 @@ pub fn start_miner(tx: Sender<(u32, Operation, Vec<u8>)>,
                     let keypair = KeyPair::from_privkey(signer_privkey).unwrap();
                     let signed_blk = blk.sign(&keypair);
                     let ret = chain.insert(&signed_blk);
-                    info!("insert block {} {} {:?}", h + 1, t, ret);
                     if ret.is_ok() {
-                        info!("generate a block {} {}", h + 1, t);
                         let msg = MsgClass::BLOCK(signed_blk);
                         let message = serialize(&msg, Infinite).unwrap();
                         tx.send((id, Operation::BROADCAST, message)).unwrap();
