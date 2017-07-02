@@ -133,20 +133,20 @@ impl ::std::ops::Deref for SignedBlock {
 
 #[derive(Debug)]
 pub struct Chain {
-    inner: RwLock<ChainImpl>,
+    inner: ChainImpl,
     sender: Mutex<Sender<u64>>,
 }
 
 #[derive(Debug)]
 struct ChainImpl {
-    blocks: HashMap<H256, SignedBlock>,
-    timestamp_future: BTreeMap<u64, HashSet<SignedBlock>>,
-    height_future: BTreeMap<u64, HashSet<SignedBlock>>,
-    parent_future: BTreeMap<H256, HashSet<SignedBlock>>,
-    forks: BTreeMap<u64, Vec<H256>>,
-    main: HashMap<u64, SignedBlock>,
-    current_height: u64,
-    current_hash: H256,
+    blocks: RwLock<HashMap<H256, SignedBlock>>,
+    timestamp_future: RwLock<BTreeMap<u64, HashSet<SignedBlock>>>,
+    height_future: RwLock<BTreeMap<u64, HashSet<SignedBlock>>>,
+    parent_future: RwLock<BTreeMap<H256, HashSet<SignedBlock>>>,
+    forks: RwLock<BTreeMap<u64, Vec<H256>>>,
+    main: RwLock<HashMap<u64, SignedBlock>>,
+    current_height: RwLock<u64>,
+    current_hash: RwLock<H256>,
 }
 
 //TODO maintenance longest chain
@@ -155,16 +155,16 @@ impl Chain {
     pub fn init() -> Arc<Self> {
         let (sender, receiver) = channel();
         let chain = Arc::new(Chain {
-                                 inner: RwLock::new(ChainImpl {
-                                                        blocks: HashMap::new(),
-                                                        timestamp_future: BTreeMap::new(),
-                                                        height_future: BTreeMap::new(),
-                                                        parent_future: BTreeMap::new(),
-                                                        forks: BTreeMap::new(),
-                                                        main: HashMap::new(),
-                                                        current_height: 0,
-                                                        current_hash: H256::zero(),
-                                                    }),
+                                 inner: ChainImpl {
+                                     blocks: RwLock::new(HashMap::new()),
+                                     timestamp_future: RwLock::new(BTreeMap::new()),
+                                     height_future: RwLock::new(BTreeMap::new()),
+                                     parent_future: RwLock::new(BTreeMap::new()),
+                                     forks: RwLock::new(BTreeMap::new()),
+                                     main: RwLock::new(HashMap::new()),
+                                     current_height: RwLock::new(0),
+                                     current_hash: RwLock::new(H256::zero()),
+                                 },
                                  sender: Mutex::new(sender),
                              });
         let mario = chain.clone();
@@ -180,69 +180,86 @@ impl Chain {
         let encoded: Vec<u8> = serialize(block, Infinite).unwrap();
         let hash = encoded.sha3();
         let bh = block.height;
-        let mut guard = self.inner.write();
+        {
+            let mut blocks = self.inner.blocks.write();
+            let mut current_height = self.inner.current_height.write();
+            let mut current_hash = self.inner.current_hash.write();
+            let mut forks = self.inner.forks.write();
 
-        if guard.blocks.contains_key(&hash) {
-            return Err(Error::Duplicate);
-        }
+            if blocks.contains_key(&hash) {
+                return Err(Error::Duplicate);
+            }
 
-        if bh > guard.current_height + 1 {
-            let future = guard.height_future.entry(bh).or_insert_with(HashSet::new);
-            future.insert(block.clone());
-            return Err(Error::FutureHeight);
-        }
+            if bh > *current_height + 1 {
+                let mut height_future = self.inner.height_future.write();
+                let future = height_future.entry(bh).or_insert_with(HashSet::new);
+                future.insert(block.clone());
+                return Err(Error::FutureHeight);
+            }
 
-        if block.proof.timestamp > timestamp_now() {
-            let future = guard
-                .timestamp_future
-                .entry(block.proof.timestamp)
-                .or_insert_with(HashSet::new);
-            future.insert(block.clone());
-            return Err(Error::FutureTime);
-        }
+            if block.proof.timestamp > timestamp_now() {
+                let mut timestamp_future = self.inner.timestamp_future.write();
+                let future = timestamp_future
+                    .entry(block.proof.timestamp)
+                    .or_insert_with(HashSet::new);
+                future.insert(block.clone());
+                return Err(Error::FutureTime);
+            }
 
-        info!("blocks {:?}, parent {:?}", guard.blocks, block.pre_hash);
-        if !block.is_first()? && !guard.blocks.contains_key(&block.pre_hash) {
-            let future = guard
-                .parent_future
-                .entry(block.pre_hash)
-                .or_insert_with(HashSet::new);
-            future.insert(block.clone());
-            return Err(Error::MissParent);
-        }
+            info!("blocks {:?}, parent {:?}", *blocks, &block.pre_hash);
+            if !block.is_first()? && !blocks.contains_key(&block.pre_hash) {
+                let mut parent_future = self.inner.parent_future.write();
+                let future = parent_future
+                    .entry(block.pre_hash)
+                    .or_insert_with(HashSet::new);
+                future.insert(block.clone());
+                return Err(Error::MissParent);
+            }
 
-        if bh == guard.current_height + 1 {
-            guard.current_height = bh;
-        }
+            if bh == *current_height + 1 {
+                *current_height = bh;
+            }
 
-        guard.blocks.insert(hash, block.clone());
-        guard.current_hash = hash;
+            blocks.insert(hash, block.clone());
+            *current_hash = hash;
 
-        let forks = {
-            let forks = guard.forks.entry(bh).or_insert_with(Vec::new);
+            let forks = forks.entry(bh).or_insert_with(Vec::new);
             forks.push(hash);
-            forks.clone()
+
+            // tmp impl:  rand pick a fork
+            if forks.len() > 1 {
+                info!("we meet fork!");
+                let mut rng = thread_rng();
+                let n: usize = rng.gen_range(0, forks.len());
+                let pick = forks[n];
+                *current_hash = pick;
+            }
+        }
+
+        let pendings = {
+            let mut parent_future = self.inner.parent_future.write();
+            if parent_future.contains_key(&hash) {
+                parent_future.remove(&hash)
+            } else {
+                None
+            }
         };
 
-        // tmp impl:  rand pick a fork
-        if forks.len() > 1 {
-            info!("we meet fork!");
-            let mut rng = thread_rng();
-            let n: usize = rng.gen_range(0, forks.len());
-            let pick = forks[n];
-        }
+        pendings.map(|blks| for blk in blks {
+                         let _ = self.insert(&blk);
+                     });
         Ok(())
     }
 
     pub fn get_status(&self) -> (u64, H256) {
-        let guard = self.inner.read();
-        (guard.current_height, guard.current_hash)
+        let current_height = self.inner.current_height.read();
+        let current_hash = self.inner.current_hash.read();
+        (*current_height, *current_hash)
     }
-
-
-    fn maintenance(&self, height: u64) {}
 
     pub fn get_block_by_hash(&self, hash: &H256) -> Option<SignedBlock> {
-        self.inner.read().blocks.get(hash).cloned()
+        self.inner.blocks.read().get(hash).cloned()
     }
+
+    fn maintenance(&self, height: u64) {}
 }
