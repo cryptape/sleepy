@@ -1,15 +1,15 @@
 use std::fmt;
 use util::error::*;
-use bigint::hash::{H256, H520};
+use bigint::hash::{H256, H512, H520};
 use bigint::uint::U256;
 
 type BlockNumber = u64;
 
 #[derive(Debug, PartialEq, Clone, Copy, Eq)]
 /// Errors concerning block processing.
-pub enum BlockError {
+pub enum Error {
     /// Public key is not found or invalid.
-    InvalidPublicKey(H256),
+    InvalidPublicKey((H512, H512)),
     /// signature for the block is invalid.
     InvalidSignature(H520),
 	/// State root header field is invalid.
@@ -35,22 +35,22 @@ pub enum BlockError {
 	UnknownParent(H256),
 }
 
-impl fmt::Display for BlockError {
+impl fmt::Display for Error {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		use self::BlockError::*;
+		use self::Error::*;
 
 		let msg = match *self {
 			InvalidStateRoot(ref mis) => format!("Invalid state root in header: {}", mis),
 			InvalidTransactionsRoot(ref mis) => format!("Invalid transactions root in header: {}", mis),
-			InvalidProofOfWork(ref oob) => format!("Block has invalid PoW: {}", oob),
+			InvalidProofOfWork(ref oob) => format!("Block has invalid PoW: {:?}", oob),
 			InvalidReceiptsRoot(ref mis) => format!("Invalid receipts trie root in header: {}", mis),
 			InvalidTimestamp(ref oob) => format!("Invalid timestamp in header: {}", oob),
 			InvalidParentHash(ref mis) => format!("Invalid parent hash: {}", mis),
 			InvalidNumber(ref mis) => format!("Invalid number in header: {}", mis),
 			RidiculousNumber(ref oob) => format!("Implausible block number. {}", oob),
 			UnknownParent(ref hash) => format!("Unknown parent: {}", hash),
-            InvalidPublicKey(ref pk) => format!("Invalid public key: {}", pk),
-            InvalidSignature(ref sig) => format!("Invalid signature: {}", sig),
+            InvalidPublicKey(ref pk) => format!("Invalid public key: {:?}", pk),
+            InvalidSignature(ref sig) => format!("Invalid signature: {:?}", sig),
             BlockInFuture(ref oob) => format!("block in future: {}", oob),
  		};
 

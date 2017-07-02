@@ -5,6 +5,7 @@ use std::fs::File;
 use std::io::BufReader;
 use bigint::hash::{H256, H512};
 use bigint::uint::U256;
+use time;
 
 #[derive(Debug, Deserialize)]
 pub struct SleepyConfig {
@@ -43,7 +44,7 @@ impl SleepyConfig {
 
     pub fn timestamp_now(&self) -> u64 {
         let now = time::now().to_timespec();
-        (now.sec * self.hz + now.nsec as i64 / 1000000000 * self.hz) as u64
+        (now.sec * self.hz as i64 + now.nsec as i64 / 1000000000 * self.hz as i64) as u64
     }
 
     pub fn getid(&self) -> u32 {

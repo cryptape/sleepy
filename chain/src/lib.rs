@@ -102,9 +102,20 @@ impl Block {
 
 impl SignedBlock {
     pub fn verify(&self) -> bool {
-        let encoded: Vec<u8> = serialize(&self, Infinite).unwrap();
+        let encoded: Vec<u8> = serialize(&self.block, Infinite).unwrap();
         let sign_hash = encoded.sha3();
         match crypto_vefify(&self.singer, &self.signature.into(), &sign_hash) {
+            Ok(ret) => ret,
+            _ => false,
+        }
+    }
+}
+
+impl Proof {
+    pub fn verify(&self) -> bool {
+        let encoded: Vec<u8> = serialize(&self.timestamp, Infinite).unwrap();
+        let sign_hash = encoded.sha3();
+        match crypto_vefify(&self.key, &self.signature.into(), &sign_hash) {
             Ok(ret) => ret,
             _ => false,
         }
