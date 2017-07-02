@@ -144,7 +144,7 @@ struct ChainImpl {
     height_future: RwLock<BTreeMap<u64, HashSet<SignedBlock>>>,
     parent_future: RwLock<BTreeMap<H256, HashSet<SignedBlock>>>,
     forks: RwLock<BTreeMap<u64, Vec<H256>>>,
-    main: RwLock<HashMap<u64, SignedBlock>>,
+    main: RwLock<HashMap<u64, H256>>,
     current_height: RwLock<u64>,
     current_hash: RwLock<H256>,
 }
@@ -167,12 +167,6 @@ impl Chain {
                                  },
                                  sender: Mutex::new(sender),
                              });
-        let mario = chain.clone();
-        thread::spawn(move || loop {
-                          info!("mario maintenance!");
-                          let height = receiver.recv().unwrap();
-                          mario.maintenance(height);
-                      });
         chain
     }
 
@@ -185,6 +179,7 @@ impl Chain {
             let mut current_height = self.inner.current_height.write();
             let mut current_hash = self.inner.current_hash.write();
             let mut forks = self.inner.forks.write();
+            let mut main = self.inner.main.write();
 
             if blocks.contains_key(&hash) {
                 return Err(Error::Duplicate);
@@ -218,22 +213,34 @@ impl Chain {
 
             if bh == *current_height + 1 {
                 *current_height = bh;
-            }
+                *current_hash = hash;
+                main.insert(bh, hash);
+                let forks = forks.entry(bh).or_insert_with(Vec::new);
+                forks.push(hash);
+                // tmp impl:  rand pick a fork
+                if forks.len() > 1 {
+                    info!("we meet fork!");
+                    let mut rng = thread_rng();
+                    let n: usize = rng.gen_range(0, forks.len());
+                    let pick = forks[n];
+                    *current_hash = pick;
+                    main.insert(bh, hash);
 
+                    let mut start_bh = bh - 1;
+                    if main.get(&start_bh) != Some(&block.pre_hash) {
+                        main.insert(start_bh, block.pre_hash);
+                        loop {
+                            let block = blocks.get(&block.pre_hash).cloned().unwrap();
+                            let start_bh = start_bh - 1;
+                            if main.get(&start_bh) == Some(&block.pre_hash) {
+                                break;
+                            }
+                            main.insert(start_bh, block.pre_hash);
+                        }
+                    }
+                }
+            }
             blocks.insert(hash, block.clone());
-            *current_hash = hash;
-
-            let forks = forks.entry(bh).or_insert_with(Vec::new);
-            forks.push(hash);
-
-            // tmp impl:  rand pick a fork
-            if forks.len() > 1 {
-                info!("we meet fork!");
-                let mut rng = thread_rng();
-                let n: usize = rng.gen_range(0, forks.len());
-                let pick = forks[n];
-                *current_hash = pick;
-            }
         }
 
         let pendings = {
@@ -260,6 +267,4 @@ impl Chain {
     pub fn get_block_by_hash(&self, hash: &H256) -> Option<SignedBlock> {
         self.inner.blocks.read().get(hash).cloned()
     }
-
-    fn maintenance(&self, height: u64) {}
 }
