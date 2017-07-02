@@ -28,6 +28,7 @@ pub enum Error {
     FutureTime,
     MissParent,
     Duplicate,
+    Malformated,
 }
 
 #[derive(Hash, Clone, Serialize, Deserialize, PartialEq, Eq, Debug)]
@@ -82,8 +83,19 @@ impl Block {
 
         SignedBlock {
             block: self,
-            singer: keypair.pubkey().clone(),
+            singer: *keypair.pubkey(),
             signature: signature,
+        }
+    }
+
+    pub fn is_first(&self) -> Result<bool, Error> {
+        if self.height == 1 {
+            if self.pre_hash != H256::zero() {
+                return Err(Error::Malformated);
+            }
+            Ok(true)
+        } else {
+            Ok(false)
         }
     }
 }
@@ -178,7 +190,8 @@ impl Chain {
             return Err(Error::FutureTime);
         }
 
-        if !guard.blocks.contains_key(&block.pre_hash) {
+
+        if !block.is_first()? && !guard.blocks.contains_key(&block.pre_hash) {
             let future = guard
                 .parent_future
                 .entry(block.pre_hash)
@@ -201,6 +214,7 @@ impl Chain {
 
         // tmp impl:  rand pick a fork
         if forks.len() > 1 {
+            info!("we meet fork!");
             let mut rng = thread_rng();
             let n: usize = rng.gen_range(0, forks.len());
             let pick = forks[n];
