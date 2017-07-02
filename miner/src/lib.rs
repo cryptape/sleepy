@@ -52,7 +52,9 @@ pub fn start_miner(tx: Sender<(u32, Operation, Vec<u8>)>,
                     };
                     let keypair = KeyPair::from_privkey(signer_privkey).unwrap();
                     let signed_blk = blk.sign(&keypair);
-                    if chain.insert(&signed_blk).is_ok() {
+                    let ret = chain.insert(&signed_blk);
+                    info!("insert block {} {} {:?}", h + 1, t, ret);
+                    if ret.is_ok() {
                         info!("get a block {} {}", h + 1, t);
                         let msg = MsgClass::BLOCK(signed_blk);
                         let message = serialize(&msg, Infinite).unwrap();

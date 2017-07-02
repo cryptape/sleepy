@@ -89,7 +89,7 @@ fn main() {
 
     loop {
         let (origin, msg) = srx.recv().unwrap();
-        info!("get msg {:?} from {}", msg, origin);
+        trace!("get msg {:?} from {}", msg, origin);
         thread::sleep(Duration::from_millis(1000));
         ctx.send((origin, Operation::BROADCAST, [1, 2, 3, 4].to_vec()))
             .unwrap();

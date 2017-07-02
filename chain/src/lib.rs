@@ -190,7 +190,7 @@ impl Chain {
             return Err(Error::FutureTime);
         }
 
-
+        info!("blocks {:?}, parent {:?}", guard.blocks, block.pre_hash);
         if !block.is_first()? && !guard.blocks.contains_key(&block.pre_hash) {
             let future = guard
                 .parent_future
@@ -205,6 +205,7 @@ impl Chain {
         }
 
         guard.blocks.insert(hash, block.clone());
+        guard.current_hash = hash;
 
         let forks = {
             let forks = guard.forks.entry(bh).or_insert_with(Vec::new);
@@ -218,7 +219,6 @@ impl Chain {
             let mut rng = thread_rng();
             let n: usize = rng.gen_range(0, forks.len());
             let pick = forks[n];
-            guard.current_hash = pick;
         }
         Ok(())
     }
