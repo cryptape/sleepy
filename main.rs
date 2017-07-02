@@ -59,7 +59,7 @@ fn main() {
     // init app
     let matches = App::new("Sleepy")
         .version("0.1")
-        .author("IC3")
+        .author("Cryptape")
         .about("Sleepy Node powered by Rust")
         .args_from_usage("-c, --config=[FILE] 'Sets a custom config file'")
         .get_matches();
@@ -98,7 +98,7 @@ fn main() {
         let decoded: MsgClass = deserialize(&msg[..]).unwrap();
         match decoded {
             MsgClass::BLOCK(blk) => {
-                info!("get block {:?}", blk);
+                trace!("get block {:?}", blk);
                 if sleepy.verify_block_basic(&blk).is_ok() {
                     let ret = chain.insert(&blk);
                     match ret {
@@ -116,7 +116,7 @@ fn main() {
                 }
             }
             MsgClass::SYNCREQ(hash) => {
-                info!("request block which hash is {:?}", hash);
+                trace!("request block which hash is {:?}", hash);
                 match chain.get_block_by_hash(&hash) {
                     Some(blk) => {
                         let message = serialize(&MsgClass::BLOCK(blk), Infinite).unwrap();
@@ -127,7 +127,7 @@ fn main() {
 
             }
             MsgClass::MSG(m) => {
-                info!("get msg {:?}", m);
+                trace!("get msg {:?}", m);
             }
         }
     }
