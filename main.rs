@@ -95,27 +95,31 @@ fn main() {
     loop {
         let (origin, msg) = srx.recv().unwrap();
         trace!("get msg from {}", origin);
-        let decoded : MsgClass = deserialize(&msg[..]).unwrap();
+        let decoded: MsgClass = deserialize(&msg[..]).unwrap();
         match decoded {
             MsgClass::BLOCK(blk) => {
                 info!("get block {:?}", blk);
                 if sleepy.verify_block_basic(&blk).is_ok() {
                     let _ = chain.insert(&blk);
                 }
-            },
+            }
             MsgClass::SYNCREQ(hash) => {
                 info!("request block which hash is {:?}", hash);
-                let blk = chain.get_block_by_hash(hash);
-                let message = serialize(&MsgClass::BLOCK(blk), Infinite).unwrap();
-                ctx.send((origin, Operation::SINGLE, message)).unwrap();
-            },
+                match chain.get_block_by_hash(&hash) {
+                    Some(blk) => {
+                        let message = serialize(&MsgClass::BLOCK(blk), Infinite).unwrap();
+                        ctx.send((origin, Operation::SINGLE, message)).unwrap();
+                    }
+                    _ => {}
+                }
+
+            }
             MsgClass::MSG(m) => {
                 info!("get msg {:?}", m);
             }
         }
         thread::sleep(Duration::from_millis(1000));
         let message = serialize(&MsgClass::MSG([1, 2, 3, 4].to_vec()), Infinite).unwrap();
-        ctx.send((origin, Operation::BROADCAST, message))
-            .unwrap();
+        ctx.send((origin, Operation::BROADCAST, message)).unwrap();
     }
 }

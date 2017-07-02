@@ -242,7 +242,7 @@ impl Chain {
 
     fn maintenance(&self, height: u64) {}
 
-    pub fn get_block_by_hash(&self, hash: H256) -> SignedBlock {
-        unimplemented!()
+    pub fn get_block_by_hash(&self, hash: &H256) -> Option<SignedBlock> {
+        self.inner.read().blocks.get(hash).cloned()
     }
 }
