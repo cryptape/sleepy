@@ -22,7 +22,7 @@ use std::sync::mpsc::{Sender, channel};
 use std::thread;
 use std::sync::Arc;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Error {
     FutureHeight,
     FutureTime,

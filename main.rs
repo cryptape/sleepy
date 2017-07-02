@@ -25,7 +25,7 @@ use std::time::Duration;
 use std::thread;
 use bincode::{serialize, deserialize, Infinite};
 use miner::start_miner;
-use chain::{Block, Chain};
+use chain::{Block, Chain, Error};
 use std::sync::Arc;
 use parking_lot::RwLock;
 use core::sleepy::Sleepy;
@@ -100,7 +100,19 @@ fn main() {
             MsgClass::BLOCK(blk) => {
                 info!("get block {:?}", blk);
                 if sleepy.verify_block_basic(&blk).is_ok() {
-                    let _ = chain.insert(&blk);
+                    let ret = chain.insert(&blk);
+                    match ret {
+                        Ok(_) => {
+                            let message = serialize(&MsgClass::BLOCK(blk), Infinite).unwrap();
+                            ctx.send((origin, Operation::SINGLE, message)).unwrap();
+                        },
+                        Err(err) => {
+                            if err == Error::MissParent {
+                                let message = serialize(&MsgClass::SYNCREQ(blk.pre_hash), Infinite).unwrap();
+                                ctx.send((origin, Operation::SINGLE, message)).unwrap();
+                            }                          
+                        },
+                    }
                 }
             }
             MsgClass::SYNCREQ(hash) => {
@@ -118,8 +130,5 @@ fn main() {
                 info!("get msg {:?}", m);
             }
         }
-        thread::sleep(Duration::from_millis(1000));
-        let message = serialize(&MsgClass::MSG([1, 2, 3, 4].to_vec()), Infinite).unwrap();
-        ctx.send((origin, Operation::BROADCAST, message)).unwrap();
     }
 }
