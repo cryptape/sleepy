@@ -27,7 +27,7 @@ use util::timestamp_now;
 pub fn start_miner(tx: Sender<(u32, Operation, Vec<u8>)>,
                    chain: Arc<Chain>,
                    config: Arc<RwLock<SleepyConfig>>) {
-    let difficulty: H256 = (U256::max_value() / U256::from(4 * 6 * 10)).into();
+    let difficulty: H256 = {config.read().get_difficulty().into()};
     let tx = tx.clone();
     let chain = chain.clone();
     let config = config.clone();
@@ -55,7 +55,7 @@ pub fn start_miner(tx: Sender<(u32, Operation, Vec<u8>)>,
                     let ret = chain.insert(&signed_blk);
                     info!("insert block {} {} {:?}", h + 1, t, ret);
                     if ret.is_ok() {
-                        info!("get a block {} {}", h + 1, t);
+                        info!("generate a block {} {}", h + 1, t);
                         let msg = MsgClass::BLOCK(signed_blk);
                         let message = serialize(&msg, Infinite).unwrap();
                         tx.send((id, Operation::BROADCAST, message)).unwrap();

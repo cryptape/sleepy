@@ -10,6 +10,7 @@ extern crate crypto;
 extern crate chain;
 extern crate miner;
 extern crate parking_lot;
+extern crate core;
 
 use env_logger::LogBuilder;
 use std::env;
@@ -17,6 +18,7 @@ use log::{LogLevelFilter, LogRecord};
 use util::config::SleepyConfig;
 use network::server::start_server;
 use network::connection::{start_client, Operation};
+use network::msgclass::MsgClass;
 use std::sync::mpsc::channel;
 use clap::App;
 use std::time::Duration;
@@ -26,6 +28,7 @@ use miner::start_miner;
 use chain::{Block, Chain};
 use std::sync::Arc;
 use parking_lot::RwLock;
+use core::sleepy::Sleepy;
 
 pub fn log_init() {
     let format = |record: &LogRecord| {
@@ -85,13 +88,34 @@ fn main() {
 
     // start miner
     let config = Arc::new(RwLock::new(config));
-    start_miner(ctx.clone(), chain, config);
+    start_miner(ctx.clone(), chain.clone(), config.clone());
+
+    let sleepy = Sleepy::new(config);
 
     loop {
         let (origin, msg) = srx.recv().unwrap();
-        trace!("get msg {:?} from {}", msg, origin);
+        trace!("get msg from {}", origin);
+        let decoded : MsgClass = deserialize(&msg[..]).unwrap();
+        match decoded {
+            MsgClass::BLOCK(blk) => {
+                info!("get block {:?}", blk);
+                if sleepy.verify_block_basic(&blk).is_ok() {
+                    let _ = chain.insert(&blk);
+                }
+            },
+            MsgClass::SYNCREQ(hash) => {
+                info!("request block which hash is {:?}", hash);
+                let blk = chain.get_block_by_hash(hash);
+                let message = serialize(&MsgClass::BLOCK(blk), Infinite).unwrap();
+                ctx.send((origin, Operation::SINGLE, message)).unwrap();
+            },
+            MsgClass::MSG(m) => {
+                info!("get msg {:?}", m);
+            }
+        }
         thread::sleep(Duration::from_millis(1000));
-        ctx.send((origin, Operation::BROADCAST, [1, 2, 3, 4].to_vec()))
+        let message = serialize(&MsgClass::MSG([1, 2, 3, 4].to_vec()), Infinite).unwrap();
+        ctx.send((origin, Operation::BROADCAST, message))
             .unwrap();
     }
 }

@@ -40,13 +40,11 @@ impl Sleepy {
             return Err(Error::InvalidProofOfWork(OutOfBounds { min: None, max: Some(config.get_difficulty()), found: block_difficulty }));
         }
         
-        if config.timestamp_now() < block.proof.timestamp {
+        if (config.timestamp_now() + 2 * config.hz * config.duration) < block.proof.timestamp {
             return Err(Error::BlockInFuture(OutOfBounds { min: None, max: Some(config.timestamp_now()), found: block.proof.timestamp }));
         }
 
         Ok(())
-
-        
     }
 
 }
