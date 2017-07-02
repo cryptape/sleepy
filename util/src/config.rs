@@ -60,7 +60,7 @@ impl SleepyConfig {
     }
 
     pub fn get_difficulty(&self) -> U256 {
-        (U256::max_value() / U256::from(self.max_peer * self.duration * self.hz)).into()
+        (U256::max_value() / U256::from((self.max_peer + 1) * self.duration * self.hz)).into()
     }
 
     pub fn set_signer_private_key(&mut self, private_key: H256) {
