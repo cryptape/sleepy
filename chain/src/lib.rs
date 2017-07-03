@@ -177,7 +177,6 @@ impl Chain {
                              });
         let mario = chain.clone();
         thread::spawn(move || loop {
-                          info!("mario maintenance!");
                           let (height, hash) = receiver.recv().unwrap();
                           mario.maintenance(height, hash);
                       });
@@ -248,6 +247,7 @@ impl Chain {
                 *current_hash = hash;
                 main.insert(bh, hash);
                 if bh > 1 {
+                    info!("notify maintenance {:?} {:?}", bh - 1, block.pre_hash);
                     self.sender.lock().send((bh - 1, block.pre_hash));
                 }
 
@@ -267,6 +267,7 @@ impl Chain {
                     main.insert(bh, hash);
                     let pick_block = blocks.get(&hash).cloned().unwrap();
                     if bh > 1 {
+                        info!("notify maintenance {:?} {:?}", bh - 1, pick_block.pre_hash);
                         self.sender.lock().send((bh - 1, pick_block.pre_hash));
                     }
                 }
@@ -310,7 +311,7 @@ impl Chain {
         let mut start_bh = height;
         let mut pre_hash = hash;
         let mut main = self.inner.main.write();
-
+        info!("mario maintenance {:?} {:?}", start_bh, hash);
         if main.get(&start_bh) != Some(&hash) {
             main.insert(start_bh, hash);
             let blocks = self.inner.blocks.read();
@@ -323,7 +324,7 @@ impl Chain {
                         if start_bh == 0 {
                             break;
                         }
-                        info!("maintenance loop {} {}", start_bh, &pre_hash);
+                        info!("mario maintenance loop {} {}", start_bh, &pre_hash);
                         if main.get(&start_bh) == Some(&pre_hash) {
                             break;
                         }
