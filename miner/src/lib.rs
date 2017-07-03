@@ -61,8 +61,7 @@ pub fn start_miner(tx: Sender<(u32, Operation, Vec<u8>)>,
                 let message = serialize(&msg, Infinite).unwrap();
                 tx.send((id, Operation::BROADCAST, message)).unwrap();             
             }
-
-            thread::sleep(Duration::from_millis(100));
+            thread::sleep(Duration::from_millis(1000 / {config.read().hz}));
         }
     });
 }

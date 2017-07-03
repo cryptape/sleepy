@@ -31,5 +31,7 @@ pid=$!
 sleep 200
 
 echo "###Sleepy stop"
-kill -9 $pid
+kill -2 $pid
+killall sleepy
+sleep 20
 exit 0
