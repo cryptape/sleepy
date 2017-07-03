@@ -21,6 +21,7 @@ use crypto::{KeyPair, sign as crypto_sign, verify_public as crypto_vefify};
 use std::sync::mpsc::{Sender, channel};
 use std::thread;
 use std::sync::Arc;
+use std::time::Duration;
 
 #[derive(Debug, PartialEq)]
 pub enum Error {
@@ -167,7 +168,7 @@ impl Chain {
                                      current_hash: RwLock::new(H256::zero()),
                                  },
                                  sender: Mutex::new(sender),
-                                 config: config,
+                                 config: config.clone(),
                              });
         let mario = chain.clone();
         thread::spawn(move || loop {
@@ -175,6 +176,17 @@ impl Chain {
                           let (height, hash) = receiver.recv().unwrap();
                           mario.maintenance(height, hash);
                       });
+
+        let future = chain.clone();
+        thread::spawn(move || {
+            info!("hanle future!");
+            let dur = 1000 / config.read().hz;
+            let dur = Duration::from_millis(dur);
+            loop {
+                thread::sleep(dur);
+                future.handle_future();
+            }
+        });
         chain
     }
 
@@ -289,6 +301,51 @@ impl Chain {
             }
         }
     }
+
+    pub fn handle_future(&self) {
+        self.handle_timestamp_future();
+        self.handle_height_future();
+    }
+
+    fn handle_timestamp_future(&self) {
+        let pendings = {
+            let mut timestamp_future = self.inner.timestamp_future.write();
+            let now = self.config.read().timestamp_now();
+            let new_future = timestamp_future.split_off(&now);
+            let pendings = timestamp_future.clone();
+            *timestamp_future = new_future;
+            pendings
+        };
+
+        let blks: Vec<SignedBlock> = pendings
+            .into_iter()
+            .flat_map(|(_, s)| s.into_iter())
+            .collect();
+
+        for blk in blks {
+            let _ = self.insert(&blk);
+        }
+    }
+
+    fn handle_height_future(&self) {
+        let pendings = {
+            let mut height_future = self.inner.height_future.write();
+            let height = self.inner.current_height.read();
+            let new_future = height_future.split_off(&height);
+            let pendings = height_future.clone();
+            *height_future = new_future;
+            pendings
+        };
+
+        let blks: Vec<SignedBlock> = pendings
+            .into_iter()
+            .flat_map(|(_, s)| s.into_iter())
+            .collect();
+
+        for blk in blks {
+            let _ = self.insert(&blk);
+        }
+    }
 }
 
 #[cfg(test)]
@@ -297,7 +354,7 @@ mod tests {
 
     #[test]
     fn verify_block_sig() {
-        let privkey = H256::from("40f2d8f8e1594579824fd04edfc7ff1ddffd6be153b23f4318e1acff037d3ea9");
+        let privkey = H256::from("40f2d8f8e1594579824fd04edfc7ff1ddffd6be153b23f4318e1acff037d3ea9",);
         let keypair = KeyPair::from_privkey(privkey).unwrap();
         let message = H256::default();
         let timestamp = 12345;
