@@ -223,14 +223,20 @@ impl Chain {
                 future.insert(block.clone());
                 return Err(Error::FutureTime);
             }
-
-            if !block.is_first()? && !blocks.contains_key(&block.pre_hash) {
+            let first_block = block.is_first()?;
+            if !first_block && !blocks.contains_key(&block.pre_hash) {
                 let mut parent_future = self.inner.parent_future.write();
                 let future = parent_future
                     .entry(block.pre_hash)
                     .or_insert_with(HashSet::new);
                 future.insert(block.clone());
                 return Err(Error::MissParent);
+            }
+            if !first_block {
+                let parent = blocks.get(&block.pre_hash).cloned().unwrap();
+                if !(block.proof.timestamp > parent.proof.timestamp) {
+                    return Err(Error::Malformated);
+                }
             }
 
             if bh == *current_height + 1 {
@@ -256,16 +262,8 @@ impl Chain {
                 }
                 // log
                 info!("Chain {{");
-                let main_len = main.len();
-                if main_len > 10 {
-                    for (key, value) in main.iter().skip(main_len - 10) {
-                        info!("   {} => {}", key, value);
-                    }
-
-                } else {
-                    for (key, value) in main.iter() {
-                        info!("   {} => {}", key, value);
-                    }
+                for (key, value) in main.iter().rev().take(10) {
+                    info!("   {} => {}", key, value);
                 }
                 info!("}}");
 
@@ -305,7 +303,7 @@ impl Chain {
 
         if main.get(&start_bh) != Some(&hash) {
             main.insert(start_bh, hash);
-            let mut blocks = self.inner.blocks.read();
+            let blocks = self.inner.blocks.read();
             loop {
                 let block = blocks.get(&pre_hash).cloned().unwrap();
                 pre_hash = block.pre_hash;
