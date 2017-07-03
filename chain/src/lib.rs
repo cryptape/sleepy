@@ -245,6 +245,10 @@ impl Chain {
                 *current_height = bh;
                 *current_hash = hash;
                 main.insert(bh, hash);
+                {
+                    self.sender.lock().send((bh - 1, block.pre_hash));
+                }
+
                 info!("insert a block {:?} {:?} {:?}",
                       bh,
                       hash,
@@ -259,8 +263,10 @@ impl Chain {
                     let pick = forks[n];
                     *current_hash = pick;
                     main.insert(bh, hash);
-
-                    self.sender.lock().send((bh - 1, block.pre_hash));
+                    let pick_block = blocks.get(&hash).cloned().unwrap();
+                    {
+                        self.sender.lock().send((bh - 1, pick_block.pre_hash));
+                    }
                 }
                 // log
                 info!("Chain {{");
