@@ -16,7 +16,7 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use bincode::{serialize, deserialize, Infinite};
 use rand::{thread_rng, Rng};
 use util::Hashable;
-use util::timestamp_now;
+use util::config::SleepyConfig;
 use crypto::{KeyPair, sign as crypto_sign, verify_public as crypto_vefify};
 use std::sync::mpsc::{Sender, channel};
 use std::thread;
@@ -134,7 +134,8 @@ impl ::std::ops::Deref for SignedBlock {
 #[derive(Debug)]
 pub struct Chain {
     inner: ChainImpl,
-    sender: Mutex<Sender<u64>>,
+    sender: Mutex<Sender<(u64, H256)>>,
+    config: Arc<RwLock<SleepyConfig>>,
 }
 
 #[derive(Debug)]
@@ -152,7 +153,7 @@ struct ChainImpl {
 //TODO maintenance longest chain
 //fetch miss parent
 impl Chain {
-    pub fn init() -> Arc<Self> {
+    pub fn init(config: Arc<RwLock<SleepyConfig>>) -> Arc<Self> {
         let (sender, receiver) = channel();
         let chain = Arc::new(Chain {
                                  inner: ChainImpl {
@@ -166,7 +167,14 @@ impl Chain {
                                      current_hash: RwLock::new(H256::zero()),
                                  },
                                  sender: Mutex::new(sender),
+                                 config: config,
                              });
+        let mario = chain.clone();
+        thread::spawn(move || loop {
+                          info!("mario maintenance!");
+                          let (height, hash) = receiver.recv().unwrap();
+                          mario.maintenance(height, hash);
+                      });
         chain
     }
 
@@ -192,7 +200,7 @@ impl Chain {
                 return Err(Error::FutureHeight);
             }
 
-            if block.proof.timestamp > timestamp_now() {
+            if block.proof.timestamp > self.config.read().timestamp_now() {
                 let mut timestamp_future = self.inner.timestamp_future.write();
                 let future = timestamp_future
                     .entry(block.proof.timestamp)
@@ -230,18 +238,7 @@ impl Chain {
                     *current_hash = pick;
                     main.insert(bh, hash);
 
-                    let mut start_bh = bh - 1;
-                    if main.get(&start_bh) != Some(&block.pre_hash) {
-                        main.insert(start_bh, block.pre_hash);
-                        loop {
-                            let block = blocks.get(&block.pre_hash).cloned().unwrap();
-                            start_bh -= 1;
-                            if main.get(&start_bh) == Some(&block.pre_hash) {
-                                break;
-                            }
-                            main.insert(start_bh, block.pre_hash);
-                        }
-                    }
+                    self.sender.lock().send((bh - 1, block.pre_hash));
                 }
             }
             blocks.insert(hash, block.clone());
@@ -270,6 +267,27 @@ impl Chain {
 
     pub fn get_block_by_hash(&self, hash: &H256) -> Option<SignedBlock> {
         self.inner.blocks.read().get(hash).cloned()
+    }
+
+    pub fn maintenance(&self, height: u64, hash: H256) {
+        let mut start_bh = height;
+        let mut pre_hash = hash;
+        let mut main = self.inner.main.write();
+
+        if main.get(&start_bh) != Some(&hash) {
+            main.insert(start_bh, hash);
+            let mut blocks = self.inner.blocks.read();
+            loop {
+                let block = blocks.get(&pre_hash).cloned().unwrap();
+                pre_hash = block.pre_hash;
+                start_bh -= 1;
+                info!("maintenance loop {} {}", start_bh, &pre_hash);
+                if main.get(&start_bh) == Some(&pre_hash) {
+                    break;
+                }
+                main.insert(start_bh, pre_hash);
+            }
+        }
     }
 }
 

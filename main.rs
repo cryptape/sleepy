@@ -83,11 +83,15 @@ fn main() {
     let (ctx, crx) = channel();
     start_client(&config, crx);
 
+
+
+
+    let config = Arc::new(RwLock::new(config));
+
     // init chain
-    let chain = Chain::init();
+    let chain = Chain::init(config.clone());
 
     // start miner
-    let config = Arc::new(RwLock::new(config));
     start_miner(ctx.clone(), chain.clone(), config.clone());
 
     let sleepy = Sleepy::new(config);
@@ -106,14 +110,15 @@ fn main() {
                         Ok(_) => {
                             let message = serialize(&MsgClass::BLOCK(blk), Infinite).unwrap();
                             ctx.send((origin, Operation::SUBTRACT, message)).unwrap();
-                        },
+                        }
                         Err(err) => {
                             warn!("insert block error {:?}", err);
                             if err == Error::MissParent {
-                                let message = serialize(&MsgClass::SYNCREQ(blk.pre_hash), Infinite).unwrap();
+                                let message = serialize(&MsgClass::SYNCREQ(blk.pre_hash), Infinite)
+                                    .unwrap();
                                 ctx.send((origin, Operation::SINGLE, message)).unwrap();
                             }
-                        },
+                        }
                     }
                 } else {
                     warn!("verify block error {:?}", ret);
