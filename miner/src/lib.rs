@@ -22,7 +22,6 @@ use util::config::SleepyConfig;
 use bincode::{serialize, deserialize, Infinite};
 use parking_lot::RwLock;
 use network::msgclass::MsgClass;
-use util::timestamp_now;
 
 pub fn start_miner(tx: Sender<(u32, Operation, Vec<u8>)>,
                    chain: Arc<Chain>,
@@ -36,7 +35,7 @@ pub fn start_miner(tx: Sender<(u32, Operation, Vec<u8>)>,
     thread::spawn(move || {
         info!("start mining!");
         loop {
-            let t: u64 = timestamp_now();
+            let t: u64 = config.read().timestamp_now();
             let miner_privkey = {
                 config.read().get_miner_private_key()
             };
