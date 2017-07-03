@@ -208,21 +208,6 @@ impl Chain {
                 return Err(Error::Duplicate);
             }
 
-            if bh > *current_height + 1 {
-                let mut height_future = self.inner.height_future.write();
-                let future = height_future.entry(bh).or_insert_with(HashSet::new);
-                future.insert(block.clone());
-                return Err(Error::FutureHeight);
-            }
-
-            if block.proof.timestamp > self.config.read().timestamp_now() {
-                let mut timestamp_future = self.inner.timestamp_future.write();
-                let future = timestamp_future
-                    .entry(block.proof.timestamp)
-                    .or_insert_with(HashSet::new);
-                future.insert(block.clone());
-                return Err(Error::FutureTime);
-            }
             let first_block = block.is_first()?;
             if !first_block && !blocks.contains_key(&block.pre_hash) {
                 let mut parent_future = self.inner.parent_future.write();
@@ -238,6 +223,23 @@ impl Chain {
                     return Err(Error::Malformated);
                 }
             }
+
+            // if bh > *current_height + 1 {
+            //     let mut height_future = self.inner.height_future.write();
+            //     let future = height_future.entry(bh).or_insert_with(HashSet::new);
+            //     future.insert(block.clone());
+            //     return Err(Error::FutureHeight);
+            // }
+
+            if block.proof.timestamp > self.config.read().timestamp_now() {
+                let mut timestamp_future = self.inner.timestamp_future.write();
+                let future = timestamp_future
+                    .entry(block.proof.timestamp)
+                    .or_insert_with(HashSet::new);
+                future.insert(block.clone());
+                return Err(Error::FutureTime);
+            }
+
 
             if bh == *current_height + 1 {
                 *current_height = bh;
@@ -319,7 +321,7 @@ impl Chain {
 
     pub fn handle_future(&self) {
         self.handle_timestamp_future();
-        self.handle_height_future();
+        // self.handle_height_future();
     }
 
     fn handle_timestamp_future(&self) {
