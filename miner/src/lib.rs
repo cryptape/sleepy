@@ -58,6 +58,7 @@ pub fn start_miner(tx: Sender<(u32, Operation, Vec<u8>)>,
                     let signed_blk = blk.sign(&keypair);
                     let ret = chain.insert(&signed_blk);
                     if ret.is_ok() {
+                        info!("gerate block height {} timestamp {}", h + 1, t);
                         let msg = MsgClass::BLOCK(signed_blk);
                         let message = serialize(&msg, Infinite).unwrap();
                         tx.send((id, Operation::BROADCAST, message)).unwrap();

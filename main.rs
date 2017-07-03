@@ -98,7 +98,7 @@ fn main() {
         let decoded: MsgClass = deserialize(&msg[..]).unwrap();
         match decoded {
             MsgClass::BLOCK(blk) => {
-                trace!("get block {:?}", blk);
+                info!("get block {} from {}", blk.height, origin);
                 if sleepy.verify_block_basic(&blk).is_ok() {
                     let ret = chain.insert(&blk);
                     match ret {
@@ -107,6 +107,7 @@ fn main() {
                             ctx.send((origin, Operation::SUBTRACT, message)).unwrap();
                         },
                         Err(err) => {
+                            warn!("insert block error {:?}", err);
                             if err == Error::MissParent {
                                 let message = serialize(&MsgClass::SYNCREQ(blk.pre_hash), Infinite).unwrap();
                                 ctx.send((origin, Operation::SINGLE, message)).unwrap();
@@ -116,7 +117,7 @@ fn main() {
                 }
             }
             MsgClass::SYNCREQ(hash) => {
-                trace!("request block which hash is {:?}", hash);
+                info!("request block which hash is {:?}", hash);
                 match chain.get_block_by_hash(&hash) {
                     Some(blk) => {
                         let message = serialize(&MsgClass::BLOCK(blk), Infinite).unwrap();
