@@ -272,3 +272,21 @@ impl Chain {
         self.inner.blocks.read().get(hash).cloned()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn verify_block_sig() {
+        let privkey = H256::from("40f2d8f8e1594579824fd04edfc7ff1ddffd6be153b23f4318e1acff037d3ea9");
+        let keypair = KeyPair::from_privkey(privkey).unwrap();
+        let message = H256::default();
+        let timestamp = 12345;
+        let sig = crypto_sign(keypair.privkey().into(), &H256::from(timestamp)).unwrap();
+        let blk = Block::new(1, timestamp, message, *keypair.pubkey(), sig.into());
+        assert_eq!(blk.proof.verify(), true);
+        let signed_blk = blk.sign(&keypair);
+        assert_eq!(signed_blk.verify(), true);
+    }
+}

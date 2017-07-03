@@ -221,7 +221,7 @@ mod tests {
     use std::str::FromStr;
     use rand::os::OsRng;
     use bigint::hash::H256;
-    use super::{SECP256K1, Signature, sign};
+    use super::{SECP256K1, Signature, sign, verify_public};
     use super::super::KeyPair;
 
     fn generate() -> Result<KeyPair, &'static str> {
@@ -240,5 +240,13 @@ mod tests {
         let string = format!("{}", signature);
         let deserialized = Signature::from_str(&string).unwrap();
         assert_eq!(signature, deserialized);
+    }
+
+    #[test]
+    fn verify() {
+        let keypair = generate().unwrap();
+        let message = H256::default();
+        let signature = sign(keypair.privkey().into(), &message.into()).unwrap();
+        assert_eq!(verify_public(&keypair.pubkey(), &signature, &message).unwrap(), true);
     }
 }

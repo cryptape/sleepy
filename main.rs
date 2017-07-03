@@ -99,7 +99,8 @@ fn main() {
         match decoded {
             MsgClass::BLOCK(blk) => {
                 info!("get block {} from {}", blk.height, origin);
-                if sleepy.verify_block_basic(&blk).is_ok() {
+                let ret = sleepy.verify_block_basic(&blk);
+                if ret.is_ok() {
                     let ret = chain.insert(&blk);
                     match ret {
                         Ok(_) => {
@@ -114,6 +115,8 @@ fn main() {
                             }
                         },
                     }
+                } else {
+                    warn!("verify block error {:?}", ret);
                 }
             }
             MsgClass::SYNCREQ(hash) => {
@@ -123,7 +126,9 @@ fn main() {
                         let message = serialize(&MsgClass::BLOCK(blk), Infinite).unwrap();
                         ctx.send((origin, Operation::SINGLE, message)).unwrap();
                     }
-                    _ => {}
+                    _ => {
+                        warn!("not found block by hash");
+                    }
                 }
 
             }
