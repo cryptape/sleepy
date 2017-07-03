@@ -44,7 +44,7 @@ impl SleepyConfig {
 
     pub fn timestamp_now(&self) -> u64 {
         let now = time::now().to_timespec();
-        (now.sec * self.hz as i64 + now.nsec as i64 / 1000000000 * self.hz as i64) as u64
+        (now.sec * self.hz as i64 + now.nsec as i64 / (1000000000 / self.hz) as i64) as u64
     }
 
     pub fn getid(&self) -> u32 {
@@ -92,6 +92,8 @@ impl SleepyConfig {
 mod test {
     use super::SleepyConfig;
     extern crate toml;
+    use std::thread;
+    use std::time::Duration;
     #[test]
     fn basics() {
         let toml = r#"
@@ -121,5 +123,9 @@ mod test {
         let value: SleepyConfig = toml::from_str(toml).unwrap();
         println!("{:?}", value);
         assert_eq!(value.port, 40000);
+        let t = value.timestamp_now();
+        thread::sleep(Duration::from_millis(100));
+        let t1 = value.timestamp_now();
+        assert_eq!(t1 - t, 1);
     }
 }

@@ -45,25 +45,21 @@ pub fn start_miner(tx: Sender<(u32, Operation, Vec<u8>)>,
                 .into();
             let hash = sig.sha3();
             if hash < difficulty {
-                loop {
-                    let (h, pre_hash) = chain.get_status();
-                    let blk = Block::new(h + 1, t, pre_hash, *miner_keypair.pubkey(), sig.into());
+                let (h, pre_hash) = chain.get_status();
+                let blk = Block::new(h + 1, t, pre_hash, *miner_keypair.pubkey(), sig.into());
 
-                    let (id, signer_privkey) = {
-                        let guard = config.read();
-                        (guard.getid(), guard.get_signer_private_key())
-                    };
-                    let keypair = KeyPair::from_privkey(signer_privkey).unwrap();
-                    let signed_blk = blk.sign(&keypair);
-                    let ret = chain.insert(&signed_blk);
-                    if ret.is_ok() {
-                        info!("gerate block height {} timestamp {}", h + 1, t);
-                        let msg = MsgClass::BLOCK(signed_blk);
-                        let message = serialize(&msg, Infinite).unwrap();
-                        tx.send((id, Operation::BROADCAST, message)).unwrap();
-                        break;
-                    }
-                }
+                let (id, signer_privkey) = {
+                    let guard = config.read();
+                    (guard.getid(), guard.get_signer_private_key())
+                };
+                let keypair = KeyPair::from_privkey(signer_privkey).unwrap();
+                let signed_blk = blk.sign(&keypair);
+                let ret = chain.insert(&signed_blk);
+                info!("insert new block {:?}", ret);
+                info!("generate block height {} timestamp {}", h + 1, t);
+                let msg = MsgClass::BLOCK(signed_blk);
+                let message = serialize(&msg, Infinite).unwrap();
+                tx.send((id, Operation::BROADCAST, message)).unwrap();             
             }
 
             thread::sleep(Duration::from_millis(100));
