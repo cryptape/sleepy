@@ -22,6 +22,7 @@ use std::sync::mpsc::{Sender, channel};
 use std::thread;
 use std::sync::Arc;
 use std::time::Duration;
+use std::fmt;
 
 #[derive(Debug, PartialEq)]
 pub enum Error {
@@ -139,6 +140,8 @@ pub struct Chain {
     config: Arc<RwLock<SleepyConfig>>,
 }
 
+type ChainIndex = BTreeMap<u64, H256>;
+
 #[derive(Debug)]
 struct ChainImpl {
     blocks: RwLock<HashMap<H256, SignedBlock>>,
@@ -146,7 +149,7 @@ struct ChainImpl {
     height_future: RwLock<BTreeMap<u64, HashSet<SignedBlock>>>,
     parent_future: RwLock<BTreeMap<H256, HashSet<SignedBlock>>>,
     forks: RwLock<BTreeMap<u64, Vec<H256>>>,
-    main: RwLock<HashMap<u64, H256>>,
+    main: RwLock<ChainIndex>,
     current_height: RwLock<u64>,
     current_hash: RwLock<H256>,
 }
@@ -163,7 +166,7 @@ impl Chain {
                                      height_future: RwLock::new(BTreeMap::new()),
                                      parent_future: RwLock::new(BTreeMap::new()),
                                      forks: RwLock::new(BTreeMap::new()),
-                                     main: RwLock::new(HashMap::new()),
+                                     main: RwLock::new(BTreeMap::new()),
                                      current_height: RwLock::new(0),
                                      current_hash: RwLock::new(H256::zero()),
                                  },
@@ -221,7 +224,6 @@ impl Chain {
                 return Err(Error::FutureTime);
             }
 
-            info!("blocks {:?}, parent {:?}", *blocks, &block.pre_hash);
             if !block.is_first()? && !blocks.contains_key(&block.pre_hash) {
                 let mut parent_future = self.inner.parent_future.write();
                 let future = parent_future
@@ -252,6 +254,21 @@ impl Chain {
 
                     self.sender.lock().send((bh - 1, block.pre_hash));
                 }
+                // log
+                info!("Chain {{");
+                let main_len = main.len();
+                if main_len > 10 {
+                    for (key, value) in main.iter().skip(main_len - 10) {
+                        info!("   {} => {}", key, value);
+                    }
+
+                } else {
+                    for (key, value) in main.iter() {
+                        info!("   {} => {}", key, value);
+                    }
+                }
+                info!("}}");
+
             }
             blocks.insert(hash, block.clone());
         }
