@@ -1,7 +1,7 @@
 use util::error::*;
 use util::Hashable;
 use std::result;
-use chain::{SignedBlock};
+use chain::SignedBlock;
 use error::*;
 use util::config::SleepyConfig;
 use bigint::uint::U256;
@@ -15,13 +15,12 @@ pub struct Sleepy {
 
 impl Sleepy {
     pub fn new(config: Arc<RwLock<SleepyConfig>>) -> Self {
-	    Sleepy {
-			config: config.clone(),
-		}
-	}
+        Sleepy { config: config.clone() }
+    }
 
     pub fn verify_block_basic(&self, sigblk: &SignedBlock) -> result::Result<(), Error> {
-        if !sigblk.verify(){
+        if !sigblk.verify() {
+            info!("block signature verify fail");
             return Err(Error::InvalidSignature(sigblk.signature));
         }
         let block = &sigblk.block;
@@ -29,22 +28,30 @@ impl Sleepy {
         let minerkey = block.proof.key;
         let config = self.config.read();
         if !block.proof.verify() {
+            info!("block proof verify fail");
             return Err(Error::InvalidSignature(block.proof.signature));
         }
 
         if !config.check_keys(minerkey, singerkey) {
             return Err(Error::InvalidPublicKey((minerkey, singerkey)));
         }
-        let block_difficulty : U256 = block.proof.signature.sha3().into();
-        if  block_difficulty > config.get_difficulty() {
-            return Err(Error::InvalidProofOfWork(OutOfBounds { min: None, max: Some(config.get_difficulty()), found: block_difficulty }));
+        let block_difficulty: U256 = block.proof.signature.sha3().into();
+        if block_difficulty > config.get_difficulty() {
+            return Err(Error::InvalidProofOfWork(OutOfBounds {
+                                                     min: None,
+                                                     max: Some(config.get_difficulty()),
+                                                     found: block_difficulty,
+                                                 }));
         }
-        
+
         if (config.timestamp_now() + 2 * config.hz * config.duration) < block.proof.timestamp {
-            return Err(Error::BlockInFuture(OutOfBounds { min: None, max: Some(config.timestamp_now()), found: block.proof.timestamp }));
+            return Err(Error::BlockInFuture(OutOfBounds {
+                                                min: None,
+                                                max: Some(config.timestamp_now()),
+                                                found: block.proof.timestamp,
+                                            }));
         }
 
         Ok(())
     }
-
 }

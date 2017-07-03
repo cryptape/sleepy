@@ -113,9 +113,9 @@ impl SignedBlock {
 
 impl Proof {
     pub fn verify(&self) -> bool {
-        let encoded: Vec<u8> = serialize(&self.timestamp, Infinite).unwrap();
-        let sign_hash = encoded.sha3();
-        match crypto_vefify(&self.key, &self.signature.into(), &sign_hash) {
+        match crypto_vefify(&self.key,
+                            &self.signature.into(),
+                            &H256::from(self.timestamp)) {
             Ok(ret) => ret,
             _ => false,
         }
