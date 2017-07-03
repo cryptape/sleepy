@@ -107,7 +107,7 @@ pub fn broadcast(con: &Connection, msg: Vec<u8>, origin: u32, operate: Operation
         }
     }
 
-    info!("{:?} broadcast msg to nodes {:?} {:?}",
+    trace!("{:?} broadcast msg to nodes {:?} {:?}",
           con.id_card,
           operate,
           peers);

@@ -25,7 +25,7 @@ echo "###Sleepy start OK"
 
 sleep 10
 echo "###Start random network delay"
-./setPortDelay.sh 4000 100 10 delay&
+${CUR_PATH}/setPortDelay.sh 4000 100 10 delay&
 pid=$!
 
 sleep 200
