@@ -159,6 +159,8 @@ struct ChainImpl {
 impl Chain {
     pub fn init(config: Arc<RwLock<SleepyConfig>>) -> Arc<Self> {
         let (sender, receiver) = channel();
+        let mut main = BTreeMap::new();
+        main.insert(0, H256::zero());
         let chain = Arc::new(Chain {
                                  inner: ChainImpl {
                                      blocks: RwLock::new(HashMap::new()),
@@ -166,7 +168,7 @@ impl Chain {
                                      height_future: RwLock::new(BTreeMap::new()),
                                      parent_future: RwLock::new(BTreeMap::new()),
                                      forks: RwLock::new(BTreeMap::new()),
-                                     main: RwLock::new(BTreeMap::new()),
+                                     main: RwLock::new(main),
                                      current_height: RwLock::new(0),
                                      current_hash: RwLock::new(H256::zero()),
                                  },
@@ -245,7 +247,7 @@ impl Chain {
                 *current_height = bh;
                 *current_hash = hash;
                 main.insert(bh, hash);
-                {
+                if bh > 1 {
                     self.sender.lock().send((bh - 1, block.pre_hash));
                 }
 
@@ -264,7 +266,7 @@ impl Chain {
                     *current_hash = pick;
                     main.insert(bh, hash);
                     let pick_block = blocks.get(&hash).cloned().unwrap();
-                    {
+                    if bh > 1 {
                         self.sender.lock().send((bh - 1, pick_block.pre_hash));
                     }
                 }
@@ -313,14 +315,25 @@ impl Chain {
             main.insert(start_bh, hash);
             let blocks = self.inner.blocks.read();
             loop {
-                let block = blocks.get(&pre_hash).cloned().unwrap();
-                pre_hash = block.pre_hash;
-                start_bh -= 1;
-                info!("maintenance loop {} {}", start_bh, &pre_hash);
-                if main.get(&start_bh) == Some(&pre_hash) {
-                    break;
+                let block = blocks.get(&pre_hash).cloned();
+                match block {
+                    Some(blk) => {
+                        pre_hash = blk.pre_hash;
+                        start_bh -= 1;
+                        if start_bh == 0 {
+                            break;
+                        }
+                        info!("maintenance loop {} {}", start_bh, &pre_hash);
+                        if main.get(&start_bh) == Some(&pre_hash) {
+                            break;
+                        }
+                        main.insert(start_bh, pre_hash);
+                    }
+                    _ => {
+                        info!("maintenance unexcepting break");
+                        break;
+                    }
                 }
-                main.insert(start_bh, pre_hash);
             }
         }
     }
