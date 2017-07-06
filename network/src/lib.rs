@@ -15,6 +15,7 @@ extern crate chain;
 #[macro_use]
 extern crate serde_derive;
 extern crate bigint;
+extern crate timesync;
 
 pub mod server;
 pub mod connection;

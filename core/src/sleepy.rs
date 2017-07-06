@@ -7,15 +7,17 @@ use util::config::SleepyConfig;
 use bigint::uint::U256;
 use std::sync::Arc;
 use parking_lot::RwLock;
+use timesync::{TimeSyncer};
 
 pub struct Sleepy {
     /// sleepy config
     config: Arc<RwLock<SleepyConfig>>,
+    time_syncer: Arc<RwLock<TimeSyncer>>,
 }
 
 impl Sleepy {
-    pub fn new(config: Arc<RwLock<SleepyConfig>>) -> Self {
-        Sleepy { config: config.clone() }
+    pub fn new(config: Arc<RwLock<SleepyConfig>>, time_syncer: Arc<RwLock<TimeSyncer>>) -> Self {
+        Sleepy { config: config.clone(), time_syncer: time_syncer.clone() }
     }
 
     pub fn verify_block_basic(&self, sigblk: &SignedBlock) -> result::Result<(), Error> {
@@ -44,10 +46,10 @@ impl Sleepy {
                                                  }));
         }
 
-        if (config.timestamp_now() + 2 * config.hz * config.duration) < block.proof.timestamp {
+        if ({self.time_syncer.read().time_now_ms()} * config.hz / 1000 + 2 * config.hz * config.duration) < block.proof.timestamp {
             return Err(Error::BlockInFuture(OutOfBounds {
                                                 min: None,
-                                                max: Some(config.timestamp_now()),
+                                                max: Some({self.time_syncer.read().time_now_ms()} * config.hz / 1000 + 2 * config.hz * config.duration),
                                                 found: block.proof.timestamp,
                                             }));
         }

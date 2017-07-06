@@ -12,3 +12,4 @@ bincode = "0.8.0"
 log = "0.3"
 time = "0.1"
 parking_lot = "0.4"
+timesync = {path = "../timesync"}

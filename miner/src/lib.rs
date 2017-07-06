@@ -7,6 +7,7 @@ extern crate log;
 extern crate network;
 extern crate bincode;
 extern crate parking_lot;
+extern crate timesync;
 
 use std::sync::mpsc::Sender;
 use chain::{Block, Chain};
@@ -22,20 +23,23 @@ use util::config::SleepyConfig;
 use bincode::{serialize, deserialize, Infinite};
 use parking_lot::RwLock;
 use network::msgclass::MsgClass;
+use timesync::{TimeSyncer}; 
 
 pub fn start_miner(tx: Sender<(u32, Operation, Vec<u8>)>,
                    chain: Arc<Chain>,
-                   config: Arc<RwLock<SleepyConfig>>) {
+                   config: Arc<RwLock<SleepyConfig>>,
+                   time_syncer: Arc<RwLock<TimeSyncer>>) {
     let difficulty: H256 = {
         config.read().get_difficulty().into()
     };
     let tx = tx.clone();
     let chain = chain.clone();
     let config = config.clone();
+    let time_syncer = time_syncer.clone();
     thread::spawn(move || {
         info!("start mining!");
         loop {
-            let t: u64 = config.read().timestamp_now();
+            let t: u64 = {time_syncer.read().time_now_ms()} * {config.read().hz} / 1000;
             let miner_privkey = {
                 config.read().get_miner_private_key()
             };
@@ -56,10 +60,12 @@ pub fn start_miner(tx: Sender<(u32, Operation, Vec<u8>)>,
                 let signed_blk = blk.sign(&keypair);
                 let ret = chain.insert(&signed_blk);
                 info!("insert new block {:?}", ret);
-                info!("generate block height {} timestamp {}", h + 1, t);
-                let msg = MsgClass::BLOCK(signed_blk);
-                let message = serialize(&msg, Infinite).unwrap();
-                tx.send((id, Operation::BROADCAST, message)).unwrap();             
+                if ret.is_ok() {
+                    info!("generate block height {} timestamp {}", h + 1, t);
+                    let msg = MsgClass::BLOCK(signed_blk);
+                    let message = serialize(&msg, Infinite).unwrap();
+                    tx.send((id, Operation::BROADCAST, message)).unwrap();
+                }
             }
             thread::sleep(Duration::from_millis(1000 / {config.read().hz}));
         }

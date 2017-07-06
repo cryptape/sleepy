@@ -9,6 +9,7 @@ extern crate bigint;
 #[macro_use]
 extern crate log;
 extern crate bincode;
+extern crate timesync;
 
 use parking_lot::{Mutex, RwLock};
 use bigint::hash::{H256, H520, H512};
@@ -23,6 +24,7 @@ use std::thread;
 use std::sync::Arc;
 use std::time::Duration;
 use std::fmt;
+use timesync::*;
 
 #[derive(Debug, PartialEq)]
 pub enum Error {
@@ -138,6 +140,7 @@ pub struct Chain {
     inner: ChainImpl,
     sender: Mutex<Sender<(u64, H256)>>,
     config: Arc<RwLock<SleepyConfig>>,
+    time_syncer: Arc<RwLock<TimeSyncer>>,
 }
 
 type ChainIndex = BTreeMap<u64, H256>;
@@ -157,7 +160,7 @@ struct ChainImpl {
 //TODO maintenance longest chain
 //fetch miss parent
 impl Chain {
-    pub fn init(config: Arc<RwLock<SleepyConfig>>) -> Arc<Self> {
+    pub fn init(config: Arc<RwLock<SleepyConfig>>, time_syncer: Arc<RwLock<TimeSyncer>>) -> Arc<Self> {
         let (sender, receiver) = channel();
         let mut main = BTreeMap::new();
         main.insert(0, H256::zero());
@@ -174,6 +177,7 @@ impl Chain {
                                  },
                                  sender: Mutex::new(sender),
                                  config: config.clone(),
+                                 time_syncer: time_syncer.clone(),
                              });
         let mario = chain.clone();
         thread::spawn(move || loop {
@@ -232,7 +236,7 @@ impl Chain {
             //     return Err(Error::FutureHeight);
             // }
 
-            if block.proof.timestamp > self.config.read().timestamp_now() {
+            if block.proof.timestamp > {self.time_syncer.read().time_now_ms()} * {self.config.read().hz} / 1000 {
                 let mut timestamp_future = self.inner.timestamp_future.write();
                 let future = timestamp_future
                     .entry(block.proof.timestamp)
@@ -347,7 +351,7 @@ impl Chain {
     fn handle_timestamp_future(&self) {
         let pendings = {
             let mut timestamp_future = self.inner.timestamp_future.write();
-            let now = self.config.read().timestamp_now();
+            let now = {self.time_syncer.read().time_now_ms()} * {self.config.read().hz} / 1000;
             let new_future = timestamp_future.split_off(&now);
             let pendings = timestamp_future.clone();
             *timestamp_future = new_future;

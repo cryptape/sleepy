@@ -19,5 +19,6 @@ util = { path = "./util" }
 chain = { path = "./chain" }
 crypto = { path = "./crypto" }
 core = { path = "./core" }
+timesync = {path = "./timesync"}
 bincode = "0.8.0"
 parking_lot = "0.4"

@@ -14,3 +14,4 @@ log = "0.3"
 util = { path = "../util" }
 bigint = {path = "../util/bigint"}
 crypto = {path = "../crypto"}
+timesync = {path = "../timesync"}

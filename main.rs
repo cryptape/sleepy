@@ -11,6 +11,7 @@ extern crate chain;
 extern crate miner;
 extern crate parking_lot;
 extern crate core;
+extern crate timesync;
 
 use env_logger::LogBuilder;
 use std::env;
@@ -25,10 +26,12 @@ use std::time::Duration;
 use std::thread;
 use bincode::{serialize, deserialize, Infinite};
 use miner::start_miner;
-use chain::{Block, Chain, Error};
+use chain::{Chain, Error};
 use std::sync::Arc;
 use parking_lot::RwLock;
 use core::sleepy::Sleepy;
+use timesync::{TimeSyncer, TimeSync};
+use std::sync::mpsc::Sender;
 
 pub fn log_init() {
     let format = |record: &LogRecord| {
@@ -48,6 +51,33 @@ pub fn log_init() {
     }
 
     builder.init().unwrap();
+}
+
+pub fn start_time_sync(tx: Sender<(u32, Operation, Vec<u8>)>, syncer : Arc<RwLock<TimeSyncer>>) {
+    thread::spawn(move || {
+        let tx = tx.clone();
+        let syncer = syncer.clone();
+        let (id, duration, nodes_size) = {
+            let guard = syncer.read();
+            (guard.id, guard.duration, guard.size)
+        };
+        thread::sleep(Duration::from_millis(1000 * id as u64 * duration));
+        info!("start time sync!");
+        
+        loop {
+            { syncer.write().next_round(); }
+            let mut msg : TimeSync = Default::default();
+            {
+                let guard = syncer.read();
+                msg.t1 = guard.round_time;
+                msg.round = guard.round;
+            };
+            let msg = MsgClass::TIMESYNC(msg);
+            let message = serialize(&msg, Infinite).unwrap();
+            tx.send((999, Operation::BROADCAST, message)).unwrap();
+            thread::sleep(Duration::from_millis(1000 * duration * nodes_size));
+        }
+    });
 }
 
 fn main() {
@@ -73,6 +103,10 @@ fn main() {
 
     let config = SleepyConfig::new(config_path);
 
+    let my_id = config.getid();
+    let nodes_size = config.max_peer + 1;
+    let duration = config.duration;
+
     let (stx, srx) = channel();
 
     // start server
@@ -84,17 +118,20 @@ fn main() {
     start_client(&config, crx);
 
 
-
+    // start time sync
+    let time_syncer = TimeSyncer::new(my_id, nodes_size, 1000, 1.0, duration);
+    let time_syncer = Arc::new(RwLock::new(time_syncer));
+    start_time_sync(ctx.clone(), time_syncer.clone());
 
     let config = Arc::new(RwLock::new(config));
 
     // init chain
-    let chain = Chain::init(config.clone());
+    let chain = Chain::init(config.clone(), time_syncer.clone());
 
     // start miner
-    start_miner(ctx.clone(), chain.clone(), config.clone());
+    start_miner(ctx.clone(), chain.clone(), config.clone(), time_syncer.clone());
 
-    let sleepy = Sleepy::new(config);
+    let sleepy = Sleepy::new(config, time_syncer.clone());
 
     loop {
         let (origin, msg) = srx.recv().unwrap();
@@ -138,6 +175,18 @@ fn main() {
                     }
                 }
 
+            }
+            MsgClass::TIMESYNC(mut sync) => {
+                if sync.t2 == 0 {
+                    // sync reqest
+                    sync.t2 = {time_syncer.read().time_now_ms()};
+                    info!("time sync request msg {:?}", msg);
+                    let message = serialize(&MsgClass::TIMESYNC(sync), Infinite).unwrap();
+                    ctx.send((origin, Operation::SINGLE, message)).unwrap();
+                } else {
+                    // sync response
+                     { let _ = time_syncer.write().add_message(sync); }
+                }
             }
             MsgClass::MSG(m) => {
                 trace!("get msg {:?}", m);
