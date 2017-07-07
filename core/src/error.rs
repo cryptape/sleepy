@@ -9,7 +9,7 @@ type BlockNumber = u64;
 /// Errors concerning block processing.
 pub enum Error {
     /// Public key is not found or invalid.
-    InvalidPublicKey((H512, H512)),
+    InvalidPublicKey(H512),
     /// signature for the block is invalid.
     InvalidSignature(H520),
 	/// State root header field is invalid.

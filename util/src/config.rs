@@ -5,9 +5,10 @@ use std::fs::File;
 use std::io::BufReader;
 use bigint::hash::{H256, H512};
 use bigint::uint::U256;
+use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, Deserialize)]
-pub struct SleepyConfig {
+pub struct Config {
     pub id_card: u32,
     pub port: u64,
     pub max_peer: u64,
@@ -20,16 +21,39 @@ pub struct SleepyConfig {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct SleepyConfig {
+    pub config: Config,
+    pub signer_private_keys: HashMap<H256, H256>,
+    pub miner_public_keys: HashSet<H512>,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct PeerConfig {
     pub id_card: u32,
     pub ip: String,
     pub port: u64,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct KeyGroup {
     pub miner_public_key: H512,
     pub signer_public_key: H512,
+}
+
+impl ::std::ops::Deref for SleepyConfig {
+    type Target = Config;
+
+    #[inline]
+    fn deref(&self) -> &Config {
+        &self.config
+    }
+}
+
+impl ::std::ops::DerefMut for SleepyConfig {
+    #[inline]
+    fn deref_mut(&mut self) -> &mut Config {
+        &mut self.config
+    }
 }
 
 impl SleepyConfig {
@@ -38,7 +62,21 @@ impl SleepyConfig {
         let mut fconfig = BufReader::new(config_file);
         let mut content = String::new();
         fconfig.read_to_string(&mut content).unwrap();
-        toml::from_str(&content).unwrap()
+        let config: Config = toml::from_str(&content).unwrap();
+        let mut pubkeys = HashSet::new();
+        let keygroups = config.keygroups.clone();
+        for v in keygroups {
+            pubkeys.insert(v.miner_public_key);
+        }
+        SleepyConfig {
+            config: config,
+            signer_private_keys: HashMap::new(),
+            miner_public_keys: pubkeys,
+        }
+    }
+
+    pub fn get_keygroups(&self) -> &Vec<KeyGroup> {
+        self.keygroups.as_ref()
     }
 
     pub fn getid(&self) -> u32 {
@@ -49,27 +87,20 @@ impl SleepyConfig {
         self.miner_private_key
     }
 
-    pub fn get_signer_private_key(&self) -> H256 {
-        self.signer_private_key
+    pub fn get_signer_private_key(&self, hash: &H256) -> H256 {
+        *self.signer_private_keys.get(hash).unwrap()
     }
 
     pub fn get_difficulty(&self) -> U256 {
         (U256::max_value() / U256::from((self.max_peer + 1) * self.duration * self.hz)).into()
     }
 
-    pub fn set_signer_private_key(&mut self, private_key: H256) {
-        self.signer_private_key = private_key;
+    pub fn set_signer_private_key(&mut self, hash: H256, private_key: H256) {
+        self.signer_private_keys.insert(hash, private_key);
     }
 
-    pub fn check_keys(&self, minerkey: H512, signerkey: H512) -> bool {
-        let keygroups: &[KeyGroup] = self.keygroups.as_ref();
-        for keys in keygroups {
-            if keys.miner_public_key == minerkey {
-                return keys.signer_public_key == signerkey;
-            }
-        }
-
-        false
+    pub fn check_keys(&self, minerkey: &H512) -> bool {
+        self.miner_public_keys.contains(minerkey)       
     }
 
     pub fn replace_signerkey(&mut self, oldkey: H512, newkey: H512) {

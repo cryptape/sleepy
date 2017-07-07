@@ -21,12 +21,11 @@ impl Sleepy {
     }
 
     pub fn verify_block_basic(&self, sigblk: &SignedBlock) -> result::Result<(), Error> {
-        if !sigblk.verify() {
-            info!("block signature verify fail");
-            return Err(Error::InvalidSignature(sigblk.signature));
-        }
+        // if !sigblk.verify() {
+        //     info!("block signature verify fail");
+        //     return Err(Error::InvalidSignature(sigblk.signature));
+        // }
         let block = &sigblk.block;
-        let singerkey = sigblk.singer;
         let minerkey = block.proof.key;
         let config = self.config.read();
         if !block.proof.verify() {
@@ -34,9 +33,10 @@ impl Sleepy {
             return Err(Error::InvalidSignature(block.proof.signature));
         }
 
-        if !config.check_keys(minerkey, singerkey) {
-            return Err(Error::InvalidPublicKey((minerkey, singerkey)));
+        if !config.check_keys(&minerkey) {
+            return Err(Error::InvalidPublicKey(minerkey));
         }
+
         let block_difficulty: U256 = block.proof.signature.sha3().into();
         if block_difficulty > config.get_difficulty() {
             return Err(Error::InvalidProofOfWork(OutOfBounds {

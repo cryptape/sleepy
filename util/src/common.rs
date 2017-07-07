@@ -21,6 +21,7 @@ pub use error::*;
 pub use bytes::*;
 pub use bigint::prelude::*;
 pub use bigint::hash;
+pub use sha3::*;
 
 #[macro_export]
 macro_rules! vec_into {

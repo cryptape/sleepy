@@ -26,6 +26,7 @@ pub mod bytes;
 pub mod standard;
 pub mod sha3;
 pub mod avl;
+pub mod pki;
 
 pub use common::*;
 pub use hashdb::*;

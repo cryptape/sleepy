@@ -10,17 +10,16 @@ extern crate parking_lot;
 extern crate timesync;
 
 use std::sync::mpsc::Sender;
-use chain::{Block, Chain};
+use chain::Chain;
 use std::thread;
 use std::time::Duration;
-use crypto::{PrivKey, sign, KeyPair};
-use bigint::hash::{H256, H520, H512};
-use bigint::uint::U256;
+use crypto::{sign, KeyPair};
+use bigint::hash::{H256, H520};
 use util::Hashable;
 use std::sync::Arc;
 use network::connection::Operation;
 use util::config::SleepyConfig;
-use bincode::{serialize, deserialize, Infinite};
+use bincode::{serialize, Infinite};
 use parking_lot::RwLock;
 use network::msgclass::MsgClass;
 use timesync::{TimeSyncer}; 
@@ -48,24 +47,13 @@ pub fn start_miner(tx: Sender<(u32, Operation, Vec<u8>)>,
                 .unwrap()
                 .into();
             let hash = sig.sha3();
-            if hash < difficulty {
-                let (h, pre_hash) = chain.get_status();
-                let blk = Block::new(h + 1, t, pre_hash, *miner_keypair.pubkey(), sig.into());
-
-                let (id, signer_privkey) = {
-                    let guard = config.read();
-                    (guard.getid(), guard.get_signer_private_key())
-                };
-                let keypair = KeyPair::from_privkey(signer_privkey).unwrap();
-                let signed_blk = blk.sign(&keypair);
-                let ret = chain.insert(&signed_blk);
-                info!("insert new block {:?}", ret);
-                if ret.is_ok() {
-                    info!("generate block height {} timestamp {}", h + 1, t);
-                    let msg = MsgClass::BLOCK(signed_blk);
-                    let message = serialize(&msg, Infinite).unwrap();
-                    tx.send((id, Operation::BROADCAST, message)).unwrap();
-                }
+            if hash < difficulty {               
+                let id = {config.read().getid()};
+                let signed_blk = chain.gen_block(t, sig, *miner_keypair.pubkey());
+                info!("generate block at timestamp {}", t);
+                let msg = MsgClass::BLOCK(signed_blk);
+                let message = serialize(&msg, Infinite).unwrap();
+                tx.send((id, Operation::BROADCAST, message)).unwrap();             
             }
             thread::sleep(Duration::from_millis(1000 / {config.read().hz}));
         }
