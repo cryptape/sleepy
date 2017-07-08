@@ -10,13 +10,15 @@ pub struct PKI {
 impl PKI {
     pub fn new(root: &mut H256, data: &Vec<KeyGroup>) -> Self {
         let mut db = MemoryDB::new();
-        let mut t = AVLDBMut::new(&mut db, root);
-        for v in data {
-            t.insert(&v.miner_public_key.to_vec(), &v.signer_public_key).unwrap();
+        {
+            let mut t = AVLDBMut::new(&mut db, root);
+            for v in data {
+                t.insert(&v.miner_public_key.to_vec(), &v.signer_public_key).unwrap();
+            }
+            t.commit();
         }
-        t.commit();
         PKI {
-            db: MemoryDB::new(),
+            db: db,
         }
     }
 

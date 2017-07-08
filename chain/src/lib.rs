@@ -338,6 +338,9 @@ impl Chain {
             if !block.verify(signer) {
                 return Err(Error::InvalidSignature)
             }
+
+            let signer_private_key = {self.config.read().get_signer_private_key(&block.pre_hash)};
+            { self.config.write().set_signer_private_key(hash, signer_private_key); }
             
         }
         
