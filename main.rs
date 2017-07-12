@@ -194,6 +194,19 @@ fn main() {
                      { let _ = time_syncer.write().add_message(sync); }
                 }
             }
+            MsgClass::TX(stx) => {
+                let ret = sleepy.verify_tx_basic(&stx);
+                if ret.is_ok() {
+                    let hash = stx.tx.sha3();             
+                    let ret = { tx_pool.write().enqueue(stx.tx.clone(), hash) };
+                    if ret {
+                        let message = serialize(&MsgClass::TX(stx), Infinite).unwrap();
+                        ctx.send((origin, Operation::BROADCAST, message)).unwrap();
+                    }
+                } else {
+                    warn!("bad stx {:?}", ret);
+                }
+            }
             MsgClass::MSG(m) => {
                 trace!("get msg {:?}", m);
             }

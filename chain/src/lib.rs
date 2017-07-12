@@ -34,6 +34,7 @@ pub enum Error {
     FutureTime,
     MissParent,
     Duplicate,
+    DuplicateTx,
     Malformated,
     InvalidPKIRoot,
     InvalidPubKey,
@@ -59,6 +60,23 @@ impl Transaction {
 
     pub fn set_content(&mut self, content : Vec<u8>) {
         self.content = content;
+    }
+}
+
+#[derive(Hash, Clone, Serialize, Deserialize, PartialEq, Eq, Debug)]
+pub struct SignedTransaction {
+    pub tx: Transaction,
+    pub signer: H512,
+    pub signature: H520,
+}
+
+impl SignedTransaction {
+    pub fn verify(&self, pubkey: &H512) -> bool {
+        let sign_hash = self.tx.sha3();
+        match crypto_vefify(pubkey, &self.signature.into(), &sign_hash) {
+            Ok(ret) => ret,
+            _ => false,
+        }
     }
 }
 
@@ -365,6 +383,19 @@ impl Chain {
             { self.config.write().set_signer_private_key(hash, signer_private_key); }
             
         }
+
+        for tx_hash in &block.hashs {
+            let ret =  self.check_dup_tx(&block.pre_hash, &tx_hash);
+            if let Err(e) = ret {
+                if e == Error::MissParent {
+                    panic!("MissParent when check_dup_tx");
+                } else {
+                    return Err(e);
+                }
+            }
+        }
+
+        info!("insert block with {} transactions", block.hashs.len());
         
         self.insert_at(hash, &block);
 
@@ -399,7 +430,7 @@ impl Chain {
                     let hashs : &[H256] = blk.block.hashs.as_ref();
                     for hash in hashs {
                         if hash == tx_hash {
-                            return Err(Error::Duplicate);
+                            return Err(Error::DuplicateTx);
                         }
                     }
                     pre_hash = blk.block.pre_hash.clone();
@@ -417,7 +448,7 @@ impl Chain {
             if let Err(e) = ret {
                 if e == Error::MissParent {
                     panic!("MissParent when check_dup_tx");
-                } else if e == Error::Duplicate {
+                } else if e == Error::DuplicateTx {
                     index_list.push(index);
                 }
             }

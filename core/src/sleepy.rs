@@ -1,7 +1,7 @@
 use util::error::*;
 use util::Hashable;
 use std::result;
-use chain::SignedBlock;
+use chain::{SignedBlock, SignedTransaction};
 use error::*;
 use util::config::SleepyConfig;
 use bigint::uint::U256;
@@ -20,6 +20,20 @@ impl Sleepy {
         Sleepy { config: config.clone(), time_syncer: time_syncer.clone() }
     }
 
+    pub fn verify_tx_basic(&self, stx: &SignedTransaction) -> result::Result<(), Error> {
+        if !stx.verify(&stx.signer) {
+            warn!("Signed transaction verify fail");
+            return Err(Error::InvalidSignature(stx.signature));
+        }
+
+        let config = self.config.read();
+        if !config.check_keys(&stx.signer) {
+            return Err(Error::InvalidPublicKey(stx.signer));
+        }
+
+        Ok(())
+    }
+
     pub fn verify_block_basic(&self, sigblk: &SignedBlock) -> result::Result<(), Error> {
         // if !sigblk.verify() {
         //     info!("block signature verify fail");
@@ -29,7 +43,7 @@ impl Sleepy {
         let minerkey = block.proof.key;
         let config = self.config.read();
         if !block.proof.verify() {
-            info!("block proof verify fail");
+            warn!("block proof verify fail");
             return Err(Error::InvalidSignature(block.proof.signature));
         }
 
