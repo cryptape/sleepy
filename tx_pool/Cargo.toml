@@ -1,0 +1,10 @@
+[package]
+name = "tx_pool"
+version = "0.6.0"
+authors = ["rink1969 <rink1969@cryptape.com>"]
+
+[dependencies]
+lru-cache = "0.1"
+util = { path = "../util" }
+bigint = {path = "../util/bigint"}
+chain = { path = "../chain" }

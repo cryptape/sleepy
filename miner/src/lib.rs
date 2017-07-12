@@ -8,6 +8,7 @@ extern crate network;
 extern crate bincode;
 extern crate parking_lot;
 extern crate timesync;
+extern crate tx_pool;
 
 use std::sync::mpsc::Sender;
 use chain::Chain;
@@ -23,11 +24,13 @@ use bincode::{serialize, Infinite};
 use parking_lot::RwLock;
 use network::msgclass::MsgClass;
 use timesync::{TimeSyncer}; 
+use tx_pool::Pool;
 
 pub fn start_miner(tx: Sender<(u32, Operation, Vec<u8>)>,
                    chain: Arc<Chain>,
                    config: Arc<RwLock<SleepyConfig>>,
-                   time_syncer: Arc<RwLock<TimeSyncer>>) {
+                   time_syncer: Arc<RwLock<TimeSyncer>>,
+                   tx_pool: Arc<RwLock<Pool>>) {
     let difficulty: H256 = {
         config.read().get_difficulty().into()
     };
@@ -35,6 +38,7 @@ pub fn start_miner(tx: Sender<(u32, Operation, Vec<u8>)>,
     let chain = chain.clone();
     let config = config.clone();
     let time_syncer = time_syncer.clone();
+    let tx_pool = tx_pool.clone();
     thread::spawn(move || {
         info!("start mining!");
         loop {
@@ -49,7 +53,9 @@ pub fn start_miner(tx: Sender<(u32, Operation, Vec<u8>)>,
             let hash = sig.sha3();
             if hash < difficulty {               
                 let id = {config.read().getid()};
-                let signed_blk = chain.gen_block(t, sig, *miner_keypair.pubkey());
+                let (tx_list, hash_list) = { tx_pool.write().package() };
+                let signed_blk = chain.gen_block(t, sig, *miner_keypair.pubkey(), tx_list, hash_list.clone());
+                { tx_pool.write().update(&hash_list) };
                 info!("generate block at timestamp {}", t);
                 let msg = MsgClass::BLOCK(signed_blk);
                 let message = serialize(&msg, Infinite).unwrap();

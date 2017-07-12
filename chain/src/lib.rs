@@ -42,7 +42,25 @@ pub enum Error {
 }
 
 #[derive(Hash, Clone, Serialize, Deserialize, PartialEq, Eq, Debug)]
-pub struct Transcation {}
+pub struct Transaction {
+    content : Vec<u8>,
+}
+
+impl Transaction {
+    pub fn new() -> Self {
+        Transaction {
+            content : Vec::new()
+        }
+    }
+
+    pub fn sha3(&self) -> H256 {
+        self.content.sha3()
+    }
+
+    pub fn set_content(&mut self, content : Vec<u8>) {
+        self.content = content;
+    }
+}
 
 #[derive(Hash, Clone, Serialize, Deserialize, PartialEq, Eq, Debug)]
 pub struct Proof {
@@ -56,7 +74,8 @@ pub struct Block {
     pub height: u64,
     pub pki_root: H256,
     pub proof: Proof,
-    pub transactions: Vec<Transcation>,
+    pub transactions: Vec<Transaction>,
+    pub hashs: Vec<H256>,
     pub pre_hash: H256,
 }
 
@@ -78,6 +97,8 @@ impl Block {
                timestamp: u64,
                pre_hash: H256,
                proof_key: H512,
+               txs: Vec<Transaction>,
+               hashs: Vec<H256>,
                signature: H520,
                pki_root: H256)
                -> Block {
@@ -89,7 +110,8 @@ impl Block {
         Block {
             height: height,
             proof: proof,
-            transactions: Vec::new(),
+            transactions: txs,
+            hashs: hashs,
             pre_hash: pre_hash,
             pki_root: pki_root,
         }
@@ -178,7 +200,7 @@ struct ChainImpl {
 }
 
 fn gen_genius_block(root: H256) -> (H256, SignedBlock) {
-    let block = Block::new(0, 0, H256::zero(), H512::zero(), H520::zero(), root);
+    let block = Block::new(0, 0, H256::zero(), H512::zero(), Vec::new(), Vec::new(), H520::zero(), root);
     let sigblk = SignedBlock {
         block: block,
         signer: H512::zero(),
@@ -361,8 +383,52 @@ impl Chain {
         Ok(())
     }
 
-    pub fn gen_block(&self, time: u64, sig: H520, pubkey: H512) -> SignedBlock {
+    pub fn check_dup_tx(&self, pre_hash: &H256, tx_hash: &H256) -> Result<(), Error> {
+        let mut pre_hash = pre_hash.clone();
+        loop {
+            {
+                let blocks = self.inner.blocks.read();
+                let blk = blocks.get(&pre_hash);
+                if blk.is_none() {
+                    return Err(Error::MissParent);
+                } else {
+                    let blk = blk.unwrap();
+                    if blk.block.height == 0 {
+                        return Ok(());
+                    }
+                    let hashs : &[H256] = blk.block.hashs.as_ref();
+                    for hash in hashs {
+                        if hash == tx_hash {
+                            return Err(Error::Duplicate);
+                        }
+                    }
+                    pre_hash = blk.block.pre_hash.clone();
+                }
+            }
+        }
+    }
+
+    pub fn gen_block(&self, time: u64, sig: H520, pubkey: H512, mut txs: Vec<Transaction>, mut hashs: Vec<H256>) -> SignedBlock {
         let (h, pre_hash) = self.get_status();
+        let mut index_list = Vec::new();
+        let mut index = 0;
+        for hash in &hashs {
+            let ret = self.check_dup_tx(&pre_hash, hash);
+            if let Err(e) = ret {
+                if e == Error::MissParent {
+                    panic!("MissParent when check_dup_tx");
+                } else if e == Error::Duplicate {
+                    index_list.push(index);
+                }
+            }
+            index = index + 1;
+        }
+        index_list.reverse();
+        for i in index_list {
+            txs.remove(i);
+            hashs.remove(i);
+        }
+
         let signer_private_key = {self.config.read().get_signer_private_key(&pre_hash)};
         let parent = {self.inner.blocks.read().get(&pre_hash).cloned().unwrap()};
         let mut pki_root = parent.pki_root;
@@ -370,7 +436,7 @@ impl Chain {
         let keypair = KeyPair::from_privkey(new_key).unwrap();
         { self.pki.write().update(&mut pki_root, &pubkey, &keypair.pubkey()).unwrap(); }
 
-        let blk = Block::new(h + 1, time, pre_hash, pubkey, sig.into(), pki_root);
+        let blk = Block::new(h + 1, time, pre_hash, pubkey, txs, hashs, sig.into(), pki_root);
         let signed_blk = blk.sign(&signer_private_key, &keypair.pubkey());
         let hash = signed_blk.hash();
         { self.config.write().set_signer_private_key(hash, new_key); }

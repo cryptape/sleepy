@@ -12,6 +12,7 @@ extern crate miner;
 extern crate parking_lot;
 extern crate core;
 extern crate timesync;
+extern crate tx_pool;
 
 use env_logger::LogBuilder;
 use std::env;
@@ -32,6 +33,7 @@ use parking_lot::RwLock;
 use core::sleepy::Sleepy;
 use timesync::{TimeSyncer, TimeSync};
 use std::sync::mpsc::Sender;
+use tx_pool::Pool;
 
 pub fn log_init() {
     let format = |record: &LogRecord| {
@@ -128,8 +130,12 @@ fn main() {
     // init chain
     let chain = Chain::init(config.clone(), time_syncer.clone());
 
+    // init tx pool
+    let tx_pool = Pool::new(1000, 300);
+    let tx_pool = Arc::new(RwLock::new(tx_pool));
+
     // start miner
-    start_miner(ctx.clone(), chain.clone(), config.clone(), time_syncer.clone());
+    start_miner(ctx.clone(), chain.clone(), config.clone(), time_syncer.clone(), tx_pool.clone());
 
     let sleepy = Sleepy::new(config, time_syncer.clone());
 
