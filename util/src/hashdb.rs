@@ -32,9 +32,9 @@ pub trait HashDB: AsHashDB + Send + Sync {
 	///
 	/// # Examples
 	/// ```rust
-	/// extern crate util;
-	/// use util::hashdb::*;
-	/// use util::memorydb::*;
+	/// extern crate ethcore_util;
+	/// use ethcore_util::hashdb::*;
+	/// use ethcore_util::memorydb::*;
 	/// fn main() {
 	///   let mut m = MemoryDB::new();
 	///   let hello_bytes = "Hello world!".as_bytes();
@@ -48,10 +48,10 @@ pub trait HashDB: AsHashDB + Send + Sync {
 	///
 	/// # Examples
 	/// ```rust
-	/// extern crate util;
-	/// use util::hashdb::*;
-	/// use util::memorydb::*;
-	/// use util::sha3::*;
+	/// extern crate ethcore_util;
+	/// use ethcore_util::hashdb::*;
+	/// use ethcore_util::memorydb::*;
+	/// use ethcore_util::sha3::*;
 	/// fn main() {
 	///   let mut m = MemoryDB::new();
 	///   let hello_bytes = "Hello world!".as_bytes();
@@ -70,10 +70,10 @@ pub trait HashDB: AsHashDB + Send + Sync {
 	///
 	/// # Examples
 	/// ```rust
-	/// extern crate util;
-	/// use util::hashdb::*;
-	/// use util::memorydb::*;
-	/// use util::hash::*;
+	/// extern crate ethcore_util;
+	/// use ethcore_util::hashdb::*;
+	/// use ethcore_util::memorydb::*;
+	/// use ethcore_util::hash::*;
 	/// fn main() {
 	///   let mut m = MemoryDB::new();
 	///   let key = m.insert("Hello world!".as_bytes());
@@ -90,10 +90,10 @@ pub trait HashDB: AsHashDB + Send + Sync {
 	///
 	/// # Examples
 	/// ```rust
-	/// extern crate util;
-	/// use util::hashdb::*;
-	/// use util::memorydb::*;
-	/// use util::sha3::*;
+	/// extern crate ethcore_util;
+	/// use ethcore_util::hashdb::*;
+	/// use ethcore_util::memorydb::*;
+	/// use ethcore_util::sha3::*;
 	/// fn main() {
 	///   let mut m = MemoryDB::new();
 	///   let d = "Hello world!".as_bytes();

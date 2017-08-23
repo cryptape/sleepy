@@ -14,12 +14,12 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity.  If not, see <http://www.gnu.org/licenses/>.
 
-//! General error types for use in sleepy.
+//! General error types for use in ethcore.
 
-use rustc_serialize::hex::FromHexError;
+use rustc_hex::FromHexError;
 use rlp::DecoderError;
 use std::fmt;
-use hash::H256;
+use bigint::hash::H256;
 
 #[derive(Debug)]
 /// Error in database subsystem.
@@ -42,7 +42,7 @@ impl fmt::Display for BaseDataError {
 }
 
 #[derive(Debug)]
-/// General error type which should be capable of representing all errors in sleepy.
+/// General error type which should be capable of representing all errors in ethcore.
 pub enum UtilError {
 	/// Error concerning the Rust standard library's IO subsystem.
 	StdIo(::std::io::Error),

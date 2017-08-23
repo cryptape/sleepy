@@ -10,20 +10,18 @@
 
 #![cfg_attr(asm_available, feature(asm))]
 
+extern crate byteorder;
 extern crate rand;
-extern crate rustc_serialize;
+extern crate rustc_hex;
 extern crate libc;
 extern crate serde;
-extern crate byteorder;
+
+#[cfg(feature = "heapsizeof")]
 #[macro_use]
 extern crate heapsize;
-#[cfg(test)]
-extern crate serde_json;
 
 pub mod hash;
 pub mod uint;
 
-pub mod prelude {
-    pub use uint::*;
-    pub use hash::*;
-}
+pub use hash::*;
+pub use uint::*;

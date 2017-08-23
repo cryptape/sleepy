@@ -1,7 +1,6 @@
 #[macro_use]
 extern crate lazy_static;
 extern crate secp256k1;
-extern crate bigint;
 extern crate sha3;
 extern crate rustc_serialize;
 extern crate util;
@@ -21,7 +20,7 @@ pub use self::error::*;
 pub use self::keypair::*;
 pub use self::signature::*;
 pub use self::signer::Signer;
-use bigint::hash::{H160, H256, H512};
+use util::hash::{H160, H256, H512};
 
 
 lazy_static! {

@@ -2,7 +2,7 @@ use std::fmt;
 use secp256k1::key;
 use rustc_serialize::hex::ToHex;
 use super::{PrivKey, PubKey, Address, SECP256K1, Error};
-use bigint::hash::{H160, H256};
+use util::hash::{H160, H256};
 use sha3::sha3_256;
 
 pub fn pubkey_to_address(pubkey: &PubKey) -> Address {

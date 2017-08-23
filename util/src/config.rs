@@ -3,9 +3,10 @@ extern crate toml;
 use std::io::prelude::*;
 use std::fs::File;
 use std::io::BufReader;
-use bigint::hash::{H256, H512};
-use bigint::uint::U256;
-use std::collections::{HashMap, HashSet};
+use {H256, H512, U256};
+use std::collections::HashMap;
+use std::ops::{Deref, DerefMut};
+use time;
 
 #[derive(Debug, Deserialize)]
 pub struct Config {
@@ -23,8 +24,7 @@ pub struct Config {
 #[derive(Debug, Deserialize)]
 pub struct SleepyConfig {
     pub config: Config,
-    pub signer_private_keys: HashMap<H256, H256>,
-    pub miner_public_keys: HashSet<H512>,
+    pub public_keys: HashMap<H512, H512>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -40,7 +40,7 @@ pub struct KeyGroup {
     pub signer_public_key: H512,
 }
 
-impl ::std::ops::Deref for SleepyConfig {
+impl Deref for SleepyConfig {
     type Target = Config;
 
     #[inline]
@@ -49,7 +49,7 @@ impl ::std::ops::Deref for SleepyConfig {
     }
 }
 
-impl ::std::ops::DerefMut for SleepyConfig {
+impl DerefMut for SleepyConfig {
     #[inline]
     fn deref_mut(&mut self) -> &mut Config {
         &mut self.config
@@ -63,15 +63,15 @@ impl SleepyConfig {
         let mut content = String::new();
         fconfig.read_to_string(&mut content).unwrap();
         let config: Config = toml::from_str(&content).unwrap();
-        let mut pubkeys = HashSet::new();
-        let keygroups = config.keygroups.clone();
-        for v in keygroups {
-            pubkeys.insert(v.miner_public_key);
+        let mut public_keys = HashMap::new();
+
+        for v in config.keygroups.clone() {
+            public_keys.insert(v.miner_public_key, v.signer_public_key);
         }
+
         SleepyConfig {
             config: config,
-            signer_private_keys: HashMap::new(),
-            miner_public_keys: pubkeys,
+            public_keys: public_keys,
         }
     }
 
@@ -79,7 +79,7 @@ impl SleepyConfig {
         self.keygroups.as_ref()
     }
 
-    pub fn getid(&self) -> u32 {
+    pub fn get_id(&self) -> u32 {
         self.id_card
     }
 
@@ -87,38 +87,33 @@ impl SleepyConfig {
         self.miner_private_key
     }
 
-    pub fn get_signer_private_key(&self, hash: &H256) -> H256 {
-        *self.signer_private_keys.get(hash).unwrap()
+    pub fn get_signer_private_key(&self) -> H256 {
+        self.signer_private_key
     }
 
     pub fn get_difficulty(&self) -> U256 {
         (U256::max_value() / U256::from((self.max_peer + 1) * self.duration * self.hz)).into()
     }
 
-    pub fn set_signer_private_key(&mut self, hash: H256, private_key: H256) {
-        self.signer_private_keys.insert(hash, private_key);
-    }
-
-    pub fn check_keys(&self, minerkey: &H512) -> bool {
-        self.miner_public_keys.contains(minerkey)       
-    }
-
-    pub fn replace_signerkey(&mut self, oldkey: H512, newkey: H512) {
-        let keygroups: &mut [KeyGroup] = self.keygroups.as_mut();
-        for keys in keygroups {
-            if keys.signer_public_key == oldkey {
-                keys.signer_public_key = newkey;
-            }
+    pub fn check_keys(&self, miner_key: &H512, sign_key: &H512) -> bool {
+        match self.public_keys.get(miner_key) {
+            Some(k) => k == sign_key,
+            None => false,
         }
+    }
+
+    pub fn timestamp_now(&self) -> u64 {
+        let now = time::now().to_timespec();
+        (now.sec * self.hz as i64 + now.nsec as i64 / (1000000000 / self.hz) as i64) as u64
     }
 }
 
 #[cfg(test)]
 mod test {
-    use super::SleepyConfig;
+    use super::Config;
     extern crate toml;
-    use std::thread;
-    use std::time::Duration;
+    // use std::thread;
+    // use std::time::Duration;
     #[test]
     fn basics() {
         let toml = r#"
@@ -145,12 +140,12 @@ mod test {
             signer_public_key = "5a39ed1020c04d4d84539975b893a4e7c53eab6c2965db8bc3468093a31bc5ae5a39ed1020c04d4d84539975b893a4e7c53eab6c2965db8bc3468093a31bc5ae"
         "#;
 
-        let value: SleepyConfig = toml::from_str(toml).unwrap();
+        let value: Config = toml::from_str(toml).unwrap();
         println!("{:?}", value);
         assert_eq!(value.port, 40000);
-        let t = value.timestamp_now();
-        thread::sleep(Duration::from_millis(100));
-        let t1 = value.timestamp_now();
-        assert_eq!(t1 - t, 1);
+        // let t = value.timestamp_now();
+        // thread::sleep(Duration::from_millis(100));
+        // let t1 = value.timestamp_now();
+        // assert_eq!(t1 - t, 1);
     }
 }
