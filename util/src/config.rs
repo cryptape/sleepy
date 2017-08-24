@@ -20,6 +20,7 @@ pub struct Config {
     pub peers: Vec<PeerConfig>,
     pub keygroups: Vec<KeyGroup>,
     pub epoch_len: u64,
+    pub start_time: u64,
 }
 
 #[derive(Debug, Deserialize)]
@@ -84,6 +85,10 @@ impl SleepyConfig {
         self.id_card
     }
 
+    pub fn start_time(&self) -> u64 {
+        self.start_time
+    }
+
     pub fn get_miner_private_key(&self) -> H256 {
         self.miner_private_key
     }
@@ -124,6 +129,7 @@ mod test {
             hz = 10
             duration = 6
             epoch_len = 10
+            start_time = 1
             miner_private_key = "5a39ed1020c04d4d84539975b893a4e7c53eab6c2965db8bc3468093a31bc5ae"
             signer_private_key = "5a39ed1020c04d4d84539975b893a4e7c53eab6c2965db8bc3468093a31bc5ae"
             [[peers]]

@@ -22,6 +22,8 @@ def make_config():
 	f.write("max_peer = " + str(size - 1) + "\n")
 	f.write("duration = " + str(duration) + "\n")
 	f.write("hz = " + str(hz) + "\n")
+	f.write("epoch_len = " + str(10) + "\n")
+	f.write("start_time = " + str(1) + "\n")
 	secret_path = os.path.join(path, "miner_privkey")
 	secret_key = open(secret_path, "r")
 	key = secret_key.read()

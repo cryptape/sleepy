@@ -12,4 +12,5 @@ pub enum Error {
     InvalidProof,
     InvalidSignature,
     InvalidFormat,
+    UnknownAncestor,
 }

@@ -21,6 +21,7 @@ pub struct Chain {
     transaction_addresses: RwLock<HashMap<H256, TransactionAddress>>,
     block_hashes: RwLock<BTreeMap<u64,H256>>,
     current_height: RwLock<u64>,
+    current_hash: RwLock<H256>,
     sender: Mutex<Sender<(u64, H256)>>,
     config: Arc<RwLock<SleepyConfig>>,
 }
@@ -34,7 +35,7 @@ impl Chain {
         let mut block_headers = HashMap::new();
         let mut block_bodies = HashMap::new();
         let mut block_hashes = BTreeMap::new();
-        let genesis = Block::genesis(config.read().timestamp_now());
+        let genesis = Block::genesis(config.read().start_time());
         let hash = genesis.hash();
         block_headers.insert(hash, genesis.header);
         block_bodies.insert(hash, genesis.body);
@@ -48,6 +49,7 @@ impl Chain {
                                 transaction_addresses: RwLock::new(HashMap::new()),
                                 block_hashes: RwLock::new(block_hashes),
                                 current_height: RwLock::new(0),
+                                current_hash: RwLock::new(hash),
                                 sender: Mutex::new(sender),
                                 config: config,
                              });
@@ -76,16 +78,19 @@ impl Chain {
         let height = block.height;
         { self.block_headers.write().insert(hash, block.header); }
         { self.block_bodies.write().insert(hash, block.body); }
-   
-        let mut current_height = self.current_height.write();
-        
+
         let mut rng = thread_rng();
+
+        let mut current_height = self.current_height.write();
+        let mut current_hash = self.current_hash.write();
 
         if height == *current_height + 1 
            || (height == *current_height && rng.gen_range(0, 1) == 0) {
            
-            *current_height = height;
             self.sender.lock().send((height, hash)).unwrap();
+            
+            *current_height = height;
+            *current_hash = hash;
 
         }
 
@@ -114,6 +119,11 @@ impl Chain {
         let mut a = height / len;
         if a > 0 { a -= 1}
         a * len
+    }
+
+    pub fn anc_hash(&self, height: u64, hash: H256) -> Option<H256> {
+        let h = self.anc_height(height + 1);
+        self.block_hash_by_number_fork(h, height, hash)
     }
 
     pub fn tx_basic_check(&self, stx: &SignedTransaction) -> Result<(), Error> {
@@ -162,8 +172,7 @@ impl Chain {
         }
         
         let height = block.height;
-        let anc_height = self.anc_height(height);
-        let anc_hash = self.block_hash_by_number_fork(anc_height, height-1, block.parent_hash).ok_or(Error::UnknownParent)?;
+        let anc_hash = self.anc_hash(height - 1, block.parent_hash).ok_or(Error::UnknownAncestor)?;
         let proof_pub = block.proof_public(anc_hash)?;
         let sign_pub = block.sign_public()?;
         if !config.check_keys(&proof_pub, &sign_pub) {
@@ -258,8 +267,8 @@ impl Chain {
 
     pub fn get_status(&self) -> (u64, H256) {
         let current_height = self.current_height.read();
-        let current_hash = *self.block_hashes.read().get(&*current_height).unwrap();
-        (*current_height, current_hash)
+        let current_hash = self.current_hash.read();
+        (*current_height, *current_hash)
     }
 
     pub fn block_hash_by_number_fork(&self, number: u64, mut height: u64, mut hash: H256) -> Option<H256> {
@@ -315,28 +324,27 @@ impl Chain {
 
 
     pub fn adjust_block_hashes(&self, mut height: u64, mut hash: H256) {
-        let mut old_hash;
+
         let mut block_hashes = self.block_hashes.write();
   
         info!("begin adjust best blocks {:?} {:?}", height, hash);
 
         loop {
-            let h = block_hashes.get(&height).expect("Invalid Height").clone();
-                
-            if h == hash || height == 0 {
-                break;
-            } else {
-                old_hash = h;
-                block_hashes.insert(height, hash);
-            }
 
-            {
+            if let Some(h) = block_hashes.insert(height, hash) {
+                if h == hash || height == 0 {
+                    break;
+                }
                 let mut transaction_addresses = self.transaction_addresses.write();
-                let transactions = self.block_bodies.read().get(&old_hash).expect("invalid block").transactions.clone();
+                let transactions = self.block_bodies.read().get(&h).expect("invalid block").transactions.clone();
                 for tx in transactions {
                     transaction_addresses.remove(&tx.hash());
                 }
 
+            }
+                
+            {
+                let mut transaction_addresses = self.transaction_addresses.write();
                 let transactions = self.block_bodies.read().get(&hash).expect("invalid block").transactions.clone();
                 for (i, tx) in transactions.iter().enumerate() {
                     let addr = TransactionAddress{ index: i, block_hash: hash};
@@ -344,7 +352,7 @@ impl Chain {
                 }
             }
 
-            hash = { self.block_headers.read().get(&hash).expect("invalid block").hash()};
+            hash = { self.block_headers.read().get(&hash).expect("invalid block").parent_hash};
             height -= 1;
         }
 
