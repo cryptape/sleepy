@@ -93,42 +93,81 @@ impl Chain {
 
     pub fn insert(&self, block: Block) -> Result<(), Error> {
         let hash = block.hash();
-        {
-            let headers = self.block_headers.read();
 
-            if headers.contains_key(&hash) {
-                return Err(Error::DuplicateBlock);
-            }
-
-            match headers.get(&block.parent_hash) {
-                Some(h) => {
-                    if block.timestamp <= h.timestamp {
-                        return Err(Error::InvalidTimestamp);
-                    }          
-                }
-                None => {
-                    let mut unknown_parent = self.unknown_parent.write();
-                    let blocks = unknown_parent.entry(block.parent_hash).or_insert_with(|| Vec::new());
-                    blocks.push(block.clone());
-                    return Err(Error::UnknownParent);
-                }
-            }
-
-            if block.timestamp > { self.config.read().timestamp_now() } {
-                self.future_blocks.write().push(block);
-                return Err(Error::FutureBlock);
-            }
-            
-        }
-
+        self.block_basic_check(&block)?;
+        
         self.check_transactions(&block)?;
         
         self.insert_at(block);
-
+        
         if let Some(blocks) = self.unknown_parent.write().remove(&hash) {
             for b in blocks {
                 self.insert(b)?;
             }
+        }
+
+        Ok(())
+    }
+
+    pub fn anc_height(&self, height: u64) -> u64 {
+        let len = {self.config.read().epoch_len};
+        let mut a = height / len;
+        if a > 0 { a -= 1}
+        a * len
+    }
+
+    pub fn tx_basic_check(&self, stx: &SignedTransaction) -> Result<(), Error> {
+        stx.recover_public()?;
+        Ok(())
+    }
+
+    pub fn block_basic_check(&self, block: &Block) -> Result<(), Error> {
+        let hash = block.hash();
+
+        if block.difficulty() > self.config.read().get_difficulty() {
+            return Err(Error::InvalidProof);
+        }
+
+        let config = self.config.read();
+
+        let max = config.timestamp_now() + 2 * config.hz * config.duration;
+
+        if max < block.timestamp {
+            return Err(Error::InvalidTimestamp);
+        }
+
+        let headers = self.block_headers.read();
+
+        if headers.contains_key(&hash) {
+            return Err(Error::DuplicateBlock);
+        }
+
+        match headers.get(&block.parent_hash) {
+            Some(h) => {
+                if block.timestamp <= h.timestamp {
+                    return Err(Error::InvalidTimestamp);
+                }          
+            }
+            None => {
+                let mut unknown_parent = self.unknown_parent.write();
+                let blocks = unknown_parent.entry(block.parent_hash).or_insert_with(|| Vec::new());
+                blocks.push(block.clone());
+                return Err(Error::UnknownParent);
+            }
+        }
+
+        if block.timestamp > { config.timestamp_now() } {
+            self.future_blocks.write().push(block.clone());
+            return Err(Error::FutureBlock);
+        }
+        
+        let height = block.height;
+        let anc_height = self.anc_height(height);
+        let anc_hash = self.block_hash_by_number_fork(anc_height, height-1, block.parent_hash).ok_or(Error::UnknownParent)?;
+        let proof_pub = block.proof_public(anc_hash)?;
+        let sign_pub = block.sign_public()?;
+        if !config.check_keys(&proof_pub, &sign_pub) {
+            return Err(Error::InvalidPublicKey);
         }
 
         Ok(())
@@ -202,9 +241,8 @@ impl Chain {
 
     }
 
-    pub fn gen_block(&self, time: u64, time_sig: H520, txs: Vec<SignedTransaction>) -> Block {
-        let (height, hash) = self.get_status();
-
+    pub fn gen_block(&self, height: u64, hash: H256, time: u64, time_sig: H520, txs: Vec<SignedTransaction>) -> Block {
+        
         let txs = self.filter_transactions(height, hash, txs);
 
         let signer_private_key = {self.config.read().get_signer_private_key()};
@@ -222,6 +260,38 @@ impl Chain {
         let current_height = self.current_height.read();
         let current_hash = *self.block_hashes.read().get(&*current_height).unwrap();
         (*current_height, current_hash)
+    }
+
+    pub fn block_hash_by_number_fork(&self, number: u64, mut height: u64, mut hash: H256) -> Option<H256> {
+        let block_hashes = self.block_hashes.read();
+
+        if height < number {
+            return None;
+        }
+        loop {
+            if height == number {
+                return Some(hash);
+            }
+
+            if Some(&hash) == block_hashes.get(&height) {
+                return block_hashes.get(&number).map(|h| h.clone());
+            }
+
+            if let Some(header) = self.get_block_header_by_hash(&hash) {
+                hash = header.parent_hash;
+                height -= 1;
+            } else {
+                return None;
+            }
+        }
+    }
+
+    pub fn current_height(&self) -> u64 {
+        *self.current_height.read()
+    }
+
+    pub fn block_hash_by_number(&self, number: u64) -> Option<H256> {
+        self.block_hashes.read().get(&number).map(|h| h.clone())
     }
 
     pub fn get_block_header_by_hash(&self, hash: &H256) -> Option<Header> {

@@ -61,15 +61,21 @@ impl Header {
     }
 
     /// Recovers the public key of the proof.
-	pub fn proof_public(&self) -> Result<H512, Error> {
+	pub fn proof_public(&self, anc_hash: H256) -> Result<H512, Error> {
         let sig: Signature = self.proof.time_signature.into();
-        recover(&sig, &H256::from(self.timestamp)).map_err(|_| Error::InvalidSignature)
+        let mut h1 = H256::from(self.timestamp).to_vec();
+        let mut h2 = H256::from(self.height).to_vec();
+        let mut h3 = anc_hash.to_vec();
+        h1.append(&mut h2);
+        h1.append(&mut h3);
+        let hash = h1.sha3();
+        recover(&sig, &hash).map_err(|_| Error::InvalidSignature)
         
 	}
 
-    ///generate proof
-    pub fn gen_proof(&self, private_key: &H256) -> Signature {
-        sign(private_key, &H256::from(self.timestamp)).unwrap().into()
+    /// Get difficulty
+    pub fn difficulty(&self) -> U256 {
+        self.proof.time_signature.sha3().into()
     }
 
     /// calculate the hash of the header
@@ -225,6 +231,17 @@ impl Block {
         block.timestamp = timestamp;
         block
     }
+
+    /// generate proof
+    pub fn gen_proof(private_key: &H256, time: u64, height: u64, anc_hash: H256 ) -> H520 {
+        let mut h1 = H256::from(time).to_vec();
+        let mut h2 = H256::from(height).to_vec();
+        let mut h3 = anc_hash.to_vec();
+        h1.append(&mut h2);
+        h1.append(&mut h3);
+        let hash = h1.sha3();
+        sign(private_key, &hash).unwrap().into()
+    }
 }
 
 #[cfg(test)]
@@ -238,9 +255,9 @@ mod tests {
         let keypair = KeyPair::from_privkey(private_key).unwrap();
         let parent_hash = H256::default();
         let timestamp = 12345;
-        let sig: H520 = sign(keypair.privkey().into(), &H256::from(timestamp)).unwrap().into();
-        let block = Block::init(1, timestamp, parent_hash, Vec::new(), sig);
-        assert_eq!(block.proof_public().unwrap(), *keypair.pubkey());
+        let proof = Block::gen_proof(&private_key, timestamp, 1, H256::default());
+        let block = Block::init(1, timestamp, parent_hash, Vec::new(), proof);
+        assert_eq!(block.proof_public(H256::default()).unwrap(), *keypair.pubkey());
     }
 
     #[test]

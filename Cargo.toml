@@ -18,7 +18,6 @@ miner = { path = "./miner" }
 util = { path = "./util" }
 chain = { path = "./chain" }
 crypto = { path = "./crypto" }
-core = { path = "./core" }
 tx_pool = { path = "./tx_pool" }
 bincode = "0.8.0"
 parking_lot = "0.4"

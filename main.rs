@@ -10,7 +10,6 @@ extern crate crypto;
 extern crate chain;
 extern crate miner;
 extern crate parking_lot;
-extern crate core;
 extern crate tx_pool;
 
 use env_logger::LogBuilder;
@@ -28,7 +27,6 @@ use chain::chain::Chain;
 use chain::error::Error;
 use std::sync::Arc;
 use parking_lot::RwLock;
-use core::sleepy::Sleepy;
 use tx_pool::Pool;
 
 pub fn log_init() {
@@ -96,8 +94,6 @@ fn main() {
     // start miner
     start_miner(ctx.clone(), chain.clone(), config.clone(), tx_pool.clone());
 
-    let sleepy = Sleepy::new(config);
-
     loop {
         let (origin, msg) = srx.recv().unwrap();
         trace!("get msg from {}", origin);
@@ -105,24 +101,19 @@ fn main() {
         match decoded {
             MsgClass::BLOCK(blk) => {
                 trace!("get block {} from {}", blk.height, origin);
-                let ret = sleepy.verify_block_basic(&blk);
-                if ret.is_ok() {
-                    let ret = chain.insert(blk.clone());
-                    match ret {
-                        Ok(_) => {}
-                        Err(err) => {
-                            if err != Error::DuplicateBlock {
-                                warn!("insert block error {:?}", err);
-                            }
-                            if err == Error::UnknownParent {
-                                let message = serialize(&MsgClass::SYNCREQ(blk.parent_hash), Infinite)
-                                    .unwrap();
-                                ctx.send((origin, Operation::SINGLE, message)).unwrap();
-                            }
+                let ret = chain.insert(blk.clone());
+                match ret {
+                    Ok(_) => {}
+                    Err(err) => {
+                        if err != Error::DuplicateBlock {
+                            warn!("insert block error {:?}", err);
+                        }
+                        if err == Error::UnknownParent {
+                            let message = serialize(&MsgClass::SYNCREQ(blk.parent_hash), Infinite)
+                                .unwrap();
+                            ctx.send((origin, Operation::SINGLE, message)).unwrap();
                         }
                     }
-                } else {
-                    warn!("verify block error {:?}", ret);
                 }
             }
             MsgClass::SYNCREQ(hash) => {
@@ -139,7 +130,7 @@ fn main() {
 
             }
             MsgClass::TX(stx) => {
-                let ret = sleepy.verify_tx_basic(&stx);
+                let ret = chain.tx_basic_check(&stx);
                 if ret.is_ok() {
                     let hash = stx.hash();             
                     let ret = { tx_pool.write().enqueue(stx.clone(), hash) };
