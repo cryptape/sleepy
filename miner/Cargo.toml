@@ -5,7 +5,6 @@ authors = ["rink1969 <rink1969@cryptape.com>"]
 
 [dependencies]
 util = { path = "../util" }
-bigint = {path = "../util/bigint"}
 crypto = {path = "../crypto"}
 network = {path = "../network"}
 chain = {path = "../chain"}

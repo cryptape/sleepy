@@ -1,6 +1,4 @@
-use crypto::Error as CryptoError;
-
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Error {
     FutureBlock,
     UnknownParent,
@@ -13,11 +11,4 @@ pub enum Error {
     InvalidPublicKey,
     InvalidSignature,
     InvalidFormat,
-    CryptoError(CryptoError),
-}
-
-impl From<CryptoError> for Error {
-	fn from(err: CryptoError) -> Self {
-		Error::CryptoError(err)
-	}
 }

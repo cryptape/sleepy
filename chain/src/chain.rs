@@ -1,5 +1,5 @@
 use parking_lot::{Mutex, RwLock};
-use util::hash::H256;
+use util::hash::{H256, H520};
 use std::collections::{BTreeMap, HashMap, HashSet};
 use rand::{thread_rng, Rng};
 use util::config::SleepyConfig;
@@ -10,7 +10,6 @@ use std::time::Duration;
 use block::{Block, Body, Header};
 use transaction::{SignedTransaction, TransactionAddress};
 use error::*;
-use crypto::Signature;
 
 
 #[derive(Debug)]
@@ -23,19 +22,19 @@ pub struct Chain {
     block_hashes: RwLock<BTreeMap<u64,H256>>,
     current_height: RwLock<u64>,
     sender: Mutex<Sender<(u64, H256)>>,
-    config: RwLock<SleepyConfig>,
+    config: Arc<RwLock<SleepyConfig>>,
 }
 
 
 //TODO maintenance longest chain
 //fetch miss parent
 impl Chain {
-    pub fn init(config: SleepyConfig) -> Arc<Self> {
+    pub fn init(config: Arc<RwLock<SleepyConfig>>) -> Arc<Self> {
         let (sender, receiver) = channel();
         let mut block_headers = HashMap::new();
         let mut block_bodies = HashMap::new();
         let mut block_hashes = BTreeMap::new();
-        let genesis = Block::genesis(config.timestamp_now());
+        let genesis = Block::genesis(config.read().timestamp_now());
         let hash = genesis.hash();
         block_headers.insert(hash, genesis.header);
         block_bodies.insert(hash, genesis.body);
@@ -50,7 +49,7 @@ impl Chain {
                                 block_hashes: RwLock::new(block_hashes),
                                 current_height: RwLock::new(0),
                                 sender: Mutex::new(sender),
-                                config: RwLock::new(config),
+                                config: config,
                              });
 
         let mario = chain.clone();
@@ -203,7 +202,7 @@ impl Chain {
 
     }
 
-    pub fn gen_block(&self, time: u64, time_sig: Signature, txs: Vec<SignedTransaction>) -> Block {
+    pub fn gen_block(&self, time: u64, time_sig: H520, txs: Vec<SignedTransaction>) -> Block {
         let (height, hash) = self.get_status();
 
         let txs = self.filter_transactions(height, hash, txs);
@@ -232,6 +231,18 @@ impl Chain {
     pub fn get_block_body_by_hash(&self, hash: &H256) -> Option<Body> {
         self.block_bodies.read().get(hash).cloned()
     }
+
+    pub fn get_block_by_hash(&self, hash: &H256) -> Option<Block> {
+        if let (Some(h), Some(b)) = (self.get_block_header_by_hash(hash), self.get_block_body_by_hash(hash)) {
+            Some( Block {
+                header: h,
+                body: b,
+            })
+        } else {
+            None
+        }
+    }
+
 
     pub fn adjust_block_hashes(&self, mut height: u64, mut hash: H256) {
         let mut old_hash;

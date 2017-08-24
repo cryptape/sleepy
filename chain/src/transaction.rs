@@ -1,4 +1,4 @@
-use util::{H256, H512, Hashable};
+use util::{H256, H512, H520, Hashable};
 use std::ops::{Deref, DerefMut};
 use crypto::{recover, Signature};
 use error::Error;
@@ -39,10 +39,10 @@ impl Transaction {
     }
 }
 
-#[derive(Hash, Clone, PartialEq, Eq, Debug)]
+#[derive(Hash, Clone, Serialize, Deserialize, PartialEq, Eq, Debug)]
 pub struct SignedTransaction {
     pub transaction: Transaction,
-    pub signature: Signature,
+    pub signature: H520,
 }
 
 impl Deref for SignedTransaction {
@@ -60,8 +60,16 @@ impl DerefMut for SignedTransaction {
 }
 
 impl SignedTransaction {
+    pub fn new() -> Self {
+        SignedTransaction {
+            transaction: Transaction::new(),
+            signature: H520::default(),
+        }
+    }
     /// Recovers the public key of the sender.
 	pub fn recover_public(&self) -> Result<H512, Error> {
-		Ok(recover(&self.signature, &self.hash())?)
+        let sig: Signature = self.signature.into();
+        recover(&sig, &self.hash()).map_err(|_| Error::InvalidSignature)
+        
 	}
 }

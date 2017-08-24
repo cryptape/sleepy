@@ -7,7 +7,7 @@ use error::*;
 use transaction::SignedTransaction;
 
 
-#[derive(Debug, PartialEq, Clone, Eq)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone, Eq)]
 pub struct HashWrap(Cell<Option<H256>>);
 
 unsafe impl Sync for HashWrap {}
@@ -20,7 +20,7 @@ impl Deref for HashWrap {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, PartialEq, Serialize, Deserialize, Eq, Debug)]
 pub struct Header {
     /// Parent hash.
 	pub parent_hash: H256,
@@ -62,7 +62,9 @@ impl Header {
 
     /// Recovers the public key of the proof.
 	pub fn proof_public(&self) -> Result<H512, Error> {
-		Ok(recover(&self.proof.time_signature, &H256::from(self.timestamp))?)
+        let sig: Signature = self.proof.time_signature.into();
+        recover(&sig, &H256::from(self.timestamp)).map_err(|_| Error::InvalidSignature)
+        
 	}
 
     ///generate proof
@@ -103,7 +105,7 @@ impl Header {
     }
 }
 
-#[derive(Hash, Clone, PartialEq, Eq, Debug)]
+#[derive(Hash, Serialize, Deserialize, Clone, PartialEq, Eq, Debug)]
 pub struct Body {
     /// transactions
     pub transactions: Vec<SignedTransaction>
@@ -124,22 +126,22 @@ impl Body {
     }
 }
 
-#[derive(Hash, Clone, PartialEq, Eq, Debug)]
+#[derive(Hash, Clone, Serialize, Deserialize, PartialEq, Eq, Debug)]
 pub struct Proof {
-    pub time_signature: Signature,
-    pub block_signature: Signature,
+    pub time_signature: H520,
+    pub block_signature: H520,
 }
 
 impl Default for Proof {
 	fn default() -> Self {
 		Proof {
-            time_signature: Signature::default(),
-            block_signature: Signature::default(),
+            time_signature: H520::default(),
+            block_signature: H520::default(),
 		}
 	}
 }
 
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, Serialize, Deserialize, PartialEq, Eq, Debug)]
 pub struct Block {
     pub header: Header,
     pub body: Body,
@@ -176,12 +178,12 @@ impl Block {
                timestamp: u64,
                parent_hash: H256,
                transactions: Vec<SignedTransaction>,
-               time_signature: Signature)
+               time_signature: H520)
                -> Block {
 
         let proof = Proof {
             time_signature: time_signature,
-            block_signature: Signature::default(),
+            block_signature: H520::default(),
         };
 
         let header = Header {
@@ -213,7 +215,8 @@ impl Block {
 
     /// Recovers the public key of the signer.
 	pub fn sign_public(&self) -> Result<H512, Error> {
-		Ok(recover(&self.proof.block_signature, &self.hash())?)
+        let sig: Signature = self.proof.block_signature.into();
+		recover(&sig, &self.hash()).map_err(|_| Error::InvalidSignature)
 	}
 
     /// Generate the genesis block.
@@ -235,8 +238,8 @@ mod tests {
         let keypair = KeyPair::from_privkey(private_key).unwrap();
         let parent_hash = H256::default();
         let timestamp = 12345;
-        let sig = sign(keypair.privkey().into(), &H256::from(timestamp)).unwrap();
-        let block = Block::init(1, timestamp, parent_hash, Vec::new(), sig.into());
+        let sig: H520 = sign(keypair.privkey().into(), &H256::from(timestamp)).unwrap().into();
+        let block = Block::init(1, timestamp, parent_hash, Vec::new(), sig);
         assert_eq!(block.proof_public().unwrap(), *keypair.pubkey());
     }
 
@@ -244,7 +247,7 @@ mod tests {
     fn test_sign_public() {
         let parent_hash = H256::default();
         let timestamp = 12345;
-        let mut block = Block::init(1, timestamp, parent_hash, Vec::new(), Signature::default());
+        let mut block = Block::init(1, timestamp, parent_hash, Vec::new(), H520::default());
         let private_key = H256::from("40f2d8f8e1594579824fd04edfc7ff1ddffd6be153b23f4318e1acff037d3ea9",);
         let keypair = KeyPair::from_privkey(private_key).unwrap();
         block.sign(&private_key);

@@ -36,7 +36,7 @@ impl Sleepy {
             return Err(Error::InvalidPublicKey(proof_pub, sign_pub));
         }
 
-        let block_difficulty: U256 = block.proof.time_signature.to_vec().sha3().into();
+        let block_difficulty: U256 = block.proof.time_signature.sha3().into();
         if block_difficulty > config.get_difficulty() {
             return Err(Error::InvalidProofOfWork(OutOfBounds {
                                                      min: None,
