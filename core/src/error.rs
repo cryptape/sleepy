@@ -1,15 +1,16 @@
 use std::fmt;
 use util::error::*;
-use bigint::hash::{H256, H512, H520};
-use bigint::uint::U256;
+use chain::error::Error as ChainError;
+use util::hash::{H256, H512, H520};
+use util::U256;
 
 type BlockNumber = u64;
 
-#[derive(Debug, PartialEq, Clone, Copy, Eq)]
+#[derive(Debug)]
 /// Errors concerning block processing.
 pub enum Error {
     /// Public key is not found or invalid.
-    InvalidPublicKey(H512),
+    InvalidPublicKey(H512, H512),
     /// signature for the block is invalid.
     InvalidSignature(H520),
 	/// State root header field is invalid.
@@ -33,6 +34,8 @@ pub enum Error {
 	RidiculousNumber(OutOfBounds<BlockNumber>),
     /// Parent given is unknown.
 	UnknownParent(H256),
+	/// Chain Error
+	BlockError(ChainError),
 }
 
 impl fmt::Display for Error {
@@ -49,11 +52,18 @@ impl fmt::Display for Error {
 			InvalidNumber(ref mis) => format!("Invalid number in header: {}", mis),
 			RidiculousNumber(ref oob) => format!("Implausible block number. {}", oob),
 			UnknownParent(ref hash) => format!("Unknown parent: {}", hash),
-            InvalidPublicKey(ref pk) => format!("Invalid public key: {:?}", pk),
+            InvalidPublicKey(ref pk1, ref pk2) => format!("Invalid public proof key: {:?} or sign key {:?}", pk1, pk2),
             InvalidSignature(ref sig) => format!("Invalid signature: {:?}", sig),
             BlockInFuture(ref oob) => format!("block in future: {}", oob),
+			BlockError(ref err) => format!("block error: {:?}", err),
  		};
 
 		f.write_fmt(format_args!("Block error ({})", msg))
+	}
+}
+
+impl From<ChainError> for Error {
+	fn from(err: ChainError) -> Self {
+		Error::BlockError(err)
 	}
 }

@@ -8,7 +8,6 @@ extern crate rand;
 #[macro_use]
 extern crate log;
 extern crate bincode;
-extern crate timesync;
 
 pub mod error;
 pub mod block;

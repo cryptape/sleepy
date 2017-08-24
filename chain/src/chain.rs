@@ -159,7 +159,7 @@ impl Chain {
 
     pub fn check_transactions(&self, block: &Block) -> Result<(), Error> {
 
-        let (height, txs_set) = self.transactions_diff(block.height - 1, block.parent_hash);
+        let (height, mut txs_set) = self.transactions_diff(block.height - 1, block.parent_hash);
 
         for tx in block.body.transactions.clone() {
             let tx_hash = tx.hash();
@@ -173,12 +173,14 @@ impl Chain {
                     return Err(Error::DuplicateTransaction);
                 }
             }
+
+            txs_set.insert(tx_hash);
         }
         Ok(())
     }
 
     pub fn filter_transactions(&self, height: u64, hash: H256, txs: Vec<SignedTransaction>) -> Vec<SignedTransaction> {
-        let (height, txs_set) = self.transactions_diff(height, hash);
+        let (height, mut txs_set) = self.transactions_diff(height, hash);
 
         txs.into_iter().filter(|tx| {
             let tx_hash = tx.hash();
@@ -192,6 +194,8 @@ impl Chain {
                     return false;
                 }
             }
+
+            txs_set.insert(tx_hash);
 
             true
 

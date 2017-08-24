@@ -227,6 +227,7 @@ impl Block {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crypto::KeyPair;
 
     #[test]
     fn test_proof_public() {
