@@ -115,9 +115,15 @@ fn main() {
     // This brings up our server.
     start_server(&config, stx);
 
+    //wait for server start
+    thread::sleep(Duration::new(5, 0));
+
     // connect peers
     let (ctx, crx) = channel();
     start_client(&config, crx);
+
+    //make sure connect to other peers
+    thread::sleep(Duration::new(20, 0));
 
 
     // start time sync
