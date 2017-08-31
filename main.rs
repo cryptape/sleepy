@@ -21,6 +21,8 @@ use network::connection::{start_client, Operation};
 use network::msgclass::MsgClass;
 use std::sync::mpsc::channel;
 use clap::App;
+use std::time::Duration;
+use std::thread;
 use bincode::{serialize, deserialize, Infinite};
 use miner::start_miner;
 use chain::chain::Chain;
@@ -78,9 +80,15 @@ fn main() {
     // This brings up our server.
     start_server(&config, stx);
 
+    //wait for server start
+    thread::sleep(Duration::new(5, 0));
+
     // connect peers
     let (ctx, crx) = channel();
     start_client(&config, crx);
+
+    //make sure connect to other peers
+    thread::sleep(Duration::new(20, 0));
 
     let config = Arc::new(RwLock::new(config));
 
