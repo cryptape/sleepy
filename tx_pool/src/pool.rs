@@ -1,8 +1,8 @@
 use filter::Filter;
 use std::collections::HashMap;
 use std::collections::BTreeSet;
-use chain::Transaction;
-use bigint::hash::H256;
+use chain::transaction::SignedTransaction;
+use util::hash::H256;
 use std::cmp::Ordering;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -50,7 +50,7 @@ pub struct Pool {
     package_limit: usize,
     filter: Filter,
     order_set: BTreeSet<TxOrder>,
-    txs: HashMap<H256, Transaction>,
+    txs: HashMap<H256, SignedTransaction>,
     strategy: Strategy,
     order: u64,
 }
@@ -86,16 +86,16 @@ impl Pool {
     }
 
     #[allow(unused_variables)]
-    fn get_order_by_priority(&mut self, tx: &Transaction) -> u64 {
+    fn get_order_by_priority(&mut self, tx: &SignedTransaction) -> u64 {
         return self.get_order();
     }
 
     #[allow(unused_variables)]
-    fn get_order_by_vip(&mut self, tx: &Transaction) -> u64 {
+    fn get_order_by_vip(&mut self, tx: &SignedTransaction) -> u64 {
         return self.get_order();
     }
 
-    pub fn enqueue(&mut self, tx: Transaction, hash: H256) -> bool {
+    pub fn enqueue(&mut self, tx: SignedTransaction, hash: H256) -> bool {
         let is_ok = self.filter.check(hash);
         if is_ok {
             let order = match self.strategy {
@@ -125,7 +125,7 @@ impl Pool {
         self.update_order_set(hash_list);
     }
 
-    pub fn package(&mut self) -> (Vec<Transaction>, Vec<H256>) {
+    pub fn package(&mut self) -> (Vec<SignedTransaction>, Vec<H256>) {
         let mut tx_list = Vec::new();
         let mut hash_list = Vec::new();
         let mut n = self.package_limit;
@@ -164,29 +164,29 @@ impl Pool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use chain::Transaction;
+    use chain::transaction::SignedTransaction;
     #[test]
     fn basic() {
         let mut p = Pool::new(2, 1);
-        let mut tx1 = Transaction::new();
-        tx1.set_content(vec![1]);
-        let mut tx2 = Transaction::new();
-        tx2.set_content(vec![1]);
-        let mut tx3 = Transaction::new();
-        tx3.set_content(vec![2]);
-        let mut tx4 = Transaction::new();
-        tx4.set_content(vec![3]);
+        let mut tx1 = SignedTransaction::new();
+        tx1.set_data(vec![1]);
+        let mut tx2 = SignedTransaction::new();
+        tx2.set_data(vec![1]);
+        let mut tx3 = SignedTransaction::new();
+        tx3.set_data(vec![2]);
+        let mut tx4 = SignedTransaction::new();
+        tx4.set_data(vec![3]);
 
-        assert_eq!(p.enqueue(tx1.clone(), tx1.sha3()), true);
-        assert_eq!(p.enqueue(tx2.clone(), tx2.sha3()), false);
-        assert_eq!(p.enqueue(tx3.clone(), tx3.sha3()), true);
-        assert_eq!(p.enqueue(tx4.clone(), tx4.sha3()), true);
+        assert_eq!(p.enqueue(tx1.clone(), tx1.cal_hash()), true);
+        assert_eq!(p.enqueue(tx2.clone(), tx2.cal_hash()), false);
+        assert_eq!(p.enqueue(tx3.clone(), tx3.cal_hash()), true);
+        assert_eq!(p.enqueue(tx4.clone(), tx4.cal_hash()), true);
 
         assert_eq!(p.len(), 3);
-        p.update(&vec![tx1.clone()]);
+        p.update(&vec![tx1.cal_hash()]);
         assert_eq!(p.len(), 2);
         assert_eq!(p.package().0, vec![tx3.clone()]);
-        p.update(&vec![tx3.clone()]);
+        p.update(&vec![tx3.cal_hash()]);
         assert_eq!(p.package().0, vec![tx4]);
         assert_eq!(p.len(), 1);
     }

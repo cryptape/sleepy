@@ -1,12 +1,11 @@
-use chain::{SignedBlock, SignedTransaction};
-use bigint::hash::{H256};
-use timesync::TimeSync;
+use chain::block::Block;
+use chain::transaction::SignedTransaction;
+use util::hash::H256;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub enum MsgClass {
-    BLOCK(SignedBlock),
+    BLOCK(Block),
     SYNCREQ(H256),
-    TIMESYNC(TimeSync),
     TX(SignedTransaction),
     MSG(Vec<u8>),
 }

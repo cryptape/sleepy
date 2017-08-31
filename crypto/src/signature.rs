@@ -6,7 +6,7 @@ use std::hash::{Hash, Hasher};
 use secp256k1::{Message as SecpMessage, RecoverableSignature, RecoveryId, Error as SecpError};
 use secp256k1::key::{SecretKey, PublicKey};
 use rustc_serialize::hex::{ToHex, FromHex};
-use bigint::hash::{H520, H256};
+use util::hash::{H520, H256};
 use super::{PrivKey, PubKey, SECP256K1, Error, Message, pubkey_to_address, Address};
 
 pub struct Signature(pub [u8; 65]);

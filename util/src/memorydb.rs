@@ -34,9 +34,9 @@ use std::collections::hash_map::Entry;
 ///
 /// # Example
 /// ```rust
-/// extern crate util;
-/// use util::hashdb::*;
-/// use util::memorydb::*;
+/// extern crate ethcore_util;
+/// use ethcore_util::hashdb::*;
+/// use ethcore_util::memorydb::*;
 /// fn main() {
 ///   let mut m = MemoryDB::new();
 ///   let d = "Hello world!".as_bytes();
@@ -85,9 +85,9 @@ impl MemoryDB {
 	///
 	/// # Examples
 	/// ```rust
-	/// extern crate util;
-	/// use util::hashdb::*;
-	/// use util::memorydb::*;
+	/// extern crate ethcore_util;
+	/// use ethcore_util::hashdb::*;
+	/// use ethcore_util::memorydb::*;
 	/// fn main() {
 	///   let mut m = MemoryDB::new();
 	///   let hello_bytes = "Hello world!".as_bytes();
