@@ -1,0 +1,6 @@
+[package]
+name = "vrf"
+version = "0.1.0"
+authors = ["Ke Wang <github@bll.io>"]
+
+[dependencies]
