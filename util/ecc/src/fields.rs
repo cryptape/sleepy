@@ -102,6 +102,13 @@ impl<F: Field> One for FieldElem<F> {
 }
 
 impl<F: Field> FieldElem<F> {
+    pub fn new(x: BigUint) -> Self {
+        FieldElem {
+            limbs: x,
+            f: PhantomData,
+        }
+    }
+    
     pub fn serialize(&self) -> Vec<u32> {
         let f: F = Default::default();
         let mask = 255usize.to_biguint().unwrap();

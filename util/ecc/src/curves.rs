@@ -289,6 +289,14 @@ impl<C: Curve<F, G>, F: Field, G: Field> Zero for JacobianPoint<C, F, G> {
 }
 
 impl<C: Curve<F, G>, F: Field, G: Field> AffinePoint<C, F, G> {
+    pub fn new(x: BigUint, y: BigUint) -> Self {
+        AffinePoint {
+            x: FieldElem::new(x),
+            y: FieldElem::new(y),
+            c: PhantomData, f: PhantomData, g: PhantomData
+        }
+    }
+
     pub fn is_valid(&self) -> bool {
         if self.is_zero() {
             true

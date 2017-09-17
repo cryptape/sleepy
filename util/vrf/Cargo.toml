@@ -4,3 +4,7 @@ version = "0.1.0"
 authors = ["Ke Wang <github@bll.io>"]
 
 [dependencies]
+num = "0.1"
+rand = "0.3"
+ecc = {path = "../ecc"}
+sha3 = "0.6.0"
