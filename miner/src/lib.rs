@@ -43,7 +43,7 @@ pub fn start_miner(tx: Sender<(u32, Operation, Vec<u8>)>,
                 let miner_privkey = {config.read().get_miner_private_key()};
                 let anc_hash = chain.anc_hash(height, hash).unwrap();
                 
-                let sig = Block::gen_proof(&miner_privkey, time, height + 1, anc_hash);
+                let sig = Block::gen_proof(miner_privkey, time, height + 1, anc_hash);
                 let proof = sig.sha3();
                 let difficulty: H256 = {config.read().get_difficulty().into()};
 

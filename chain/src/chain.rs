@@ -1,5 +1,5 @@
 use parking_lot::{Mutex, RwLock};
-use util::hash::{H256, H520};
+use util::hash::H256;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use rand::{thread_rng, Rng};
 use util::config::SleepyConfig;
@@ -173,10 +173,11 @@ impl Chain {
         
         let height = block.height;
         let anc_hash = self.anc_hash(height - 1, block.parent_hash).ok_or(Error::UnknownAncestor)?;
-        let proof_pub = block.proof_public(anc_hash)?;
         let sign_pub = block.sign_public()?;
-        if !config.check_keys(&proof_pub, &sign_pub) {
-            return Err(Error::InvalidPublicKey);
+        let (proof_pub, proof_g) = config.get_proof_pub(&sign_pub).ok_or(Error::InvalidPublicKey)?;
+
+        if !block.verify_proof(anc_hash, proof_pub, proof_g) {
+            return Err(Error::InvalidProofKey);
         }
 
         Ok(())
@@ -250,7 +251,7 @@ impl Chain {
 
     }
 
-    pub fn gen_block(&self, height: u64, hash: H256, time: u64, time_sig: H520, txs: Vec<SignedTransaction>) -> Block {
+    pub fn gen_block(&self, height: u64, hash: H256, time: u64, time_sig: Vec<u8>, txs: Vec<SignedTransaction>) -> Block {
         
         let txs = self.filter_transactions(height, hash, txs);
 

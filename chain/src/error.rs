@@ -9,6 +9,7 @@ pub enum Error {
     InvalidStateRoot,
     InvalidTransactionsRoot,
     InvalidPublicKey,
+    InvalidProofKey,
     InvalidProof,
     InvalidSignature,
     InvalidFormat,

@@ -26,7 +26,7 @@ pub struct Config {
 #[derive(Debug, Deserialize)]
 pub struct SleepyConfig {
     pub config: Config,
-    pub public_keys: HashMap<H512, [Vec<u8>;2]>,
+    pub public_keys: HashMap<H512, (Vec<u8>, Vec<u8>)>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -38,8 +38,8 @@ pub struct PeerConfig {
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct KeyGroup {
-    pub miner_public_key: Vec<u8>,
-    pub miner_public_g: Vec<u8>,
+    pub proof_public_key: Vec<u8>,
+    pub proof_public_g: Vec<u8>,
     pub signer_public_key: H512,
 }
 
@@ -69,7 +69,7 @@ impl SleepyConfig {
         let mut public_keys = HashMap::new();
 
         for v in config.keygroups.clone() {
-            let miner = [v.miner_public_key, v.miner_public_g];
+            let miner = (v.proof_public_key, v.proof_public_g);
             public_keys.insert(v.signer_public_key, miner);
         }
 
@@ -101,6 +101,10 @@ impl SleepyConfig {
 
     pub fn get_difficulty(&self) -> U256 {
         (U256::max_value() / U256::from((self.max_peer + 1) * self.duration * self.hz)).into()
+    }
+
+    pub fn get_proof_pub(&self, sign_key: &H512) -> Option<(Vec<u8>, Vec<u8>)> {
+        self.public_keys.get(sign_key).map(|v| v.clone())
     }
 
     // pub fn check_keys(&self, miner_key: &H512, sign_key: &H512) -> bool {
@@ -143,12 +147,12 @@ mod test {
             ip = "127.0.0.1"
             port = 40002
             [[keygroups]]
-            miner_public_key = [5, 187, 13, 170, 167, 224, 60, 147, 202, 19, 224, 0, 123, 201, 193, 8, 80, 105, 212, 162, 5, 103, 50, 145, 212, 129, 226, 7, 133, 209, 205, 106, 25, 243, 195, 27, 250, 97, 33, 164, 1]
-            miner_public_g = [26, 143, 4, 165, 28, 50, 23, 127, 123, 48, 213, 125, 157, 223, 45, 63, 193, 95, 249, 215, 27, 71, 102, 178, 229, 66, 7, 46, 227, 238, 184, 125, 152, 61, 121, 252, 4, 156, 131, 163, 0]
+            proof_public_key = [5, 187, 13, 170, 167, 224, 60, 147, 202, 19, 224, 0, 123, 201, 193, 8, 80, 105, 212, 162, 5, 103, 50, 145, 212, 129, 226, 7, 133, 209, 205, 106, 25, 243, 195, 27, 250, 97, 33, 164, 1]
+            proof_public_g = [26, 143, 4, 165, 28, 50, 23, 127, 123, 48, 213, 125, 157, 223, 45, 63, 193, 95, 249, 215, 27, 71, 102, 178, 229, 66, 7, 46, 227, 238, 184, 125, 152, 61, 121, 252, 4, 156, 131, 163, 0]
             signer_public_key = "5a39ed1020c04d4d84539975b893a4e7c53eab6c2965db8bc3468093a31bc5ae5a39ed1020c04d4d84539975b893a4e7c53eab6c2965db8bc3468093a31bc5ae"
             [[keygroups]]
-            miner_public_key = [5, 187, 13, 170, 167, 224, 60, 147, 202, 19, 224, 0, 123, 201, 193, 8, 80, 105, 212, 162, 5, 103, 50, 145, 212, 129, 226, 7, 133, 209, 205, 106, 25, 243, 195, 27, 250, 97, 33, 164, 1]
-            miner_public_g = [26, 143, 4, 165, 28, 50, 23, 127, 123, 48, 213, 125, 157, 223, 45, 63, 193, 95, 249, 215, 27, 71, 102, 178, 229, 66, 7, 46, 227, 238, 184, 125, 152, 61, 121, 252, 4, 156, 131, 163, 0]
+            proof_public_key = [5, 187, 13, 170, 167, 224, 60, 147, 202, 19, 224, 0, 123, 201, 193, 8, 80, 105, 212, 162, 5, 103, 50, 145, 212, 129, 226, 7, 133, 209, 205, 106, 25, 243, 195, 27, 250, 97, 33, 164, 1]
+            proof_public_g = [26, 143, 4, 165, 28, 50, 23, 127, 123, 48, 213, 125, 157, 223, 45, 63, 193, 95, 249, 215, 27, 71, 102, 178, 229, 66, 7, 46, 227, 238, 184, 125, 152, 61, 121, 252, 4, 156, 131, 163, 0]
             signer_public_key = "5a39ed1020c04d4d84539975b893a4e7c53eab6c2965db8bc3468093a31bc5ae5a39ed1020c04d4d84539975b893a4e7c53eab6c2965db8bc3468093a31bc5af"
         "#;
 

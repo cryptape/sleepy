@@ -13,3 +13,4 @@ serde_json = "1.0"
 log = "0.3"
 util = { path = "../util" }
 crypto = {path = "../crypto"}
+bls = {path = "../util/bls"}

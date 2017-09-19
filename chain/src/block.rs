@@ -5,6 +5,7 @@ use std::ops::{Deref, DerefMut};
 use std::cell::Cell;
 use error::*;
 use transaction::SignedTransaction;
+use bls;
 
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone, Eq)]
@@ -60,17 +61,16 @@ impl Header {
         Self::default()
     }
 
-    /// Recovers the public key of the proof.
-	pub fn proof_public(&self, anc_hash: H256) -> Result<H512, Error> {
-        let sig: Signature = self.proof.time_signature.into();
+    /// verify the proof.
+	pub fn verify_proof(&self, anc_hash: H256, pubkey: Vec<u8>, g: Vec<u8>) -> bool {
+        let sig = self.proof.time_signature.clone();
         let mut h1 = H256::from(self.timestamp).to_vec();
         let mut h2 = H256::from(self.height).to_vec();
         let mut h3 = anc_hash.to_vec();
         h1.append(&mut h2);
         h1.append(&mut h3);
         let hash = h1.sha3();
-        recover(&sig, &hash).map_err(|_| Error::InvalidSignature)
-        
+        bls::verify(hash.to_vec(), sig, pubkey, g)        
 	}
 
     /// Get difficulty
@@ -134,14 +134,14 @@ impl Body {
 
 #[derive(Hash, Clone, Serialize, Deserialize, PartialEq, Eq, Debug)]
 pub struct Proof {
-    pub time_signature: H520,
+    pub time_signature: Vec<u8>,
     pub block_signature: H520,
 }
 
 impl Default for Proof {
 	fn default() -> Self {
 		Proof {
-            time_signature: H520::default(),
+            time_signature: Vec::new(),
             block_signature: H520::default(),
 		}
 	}
@@ -184,7 +184,7 @@ impl Block {
                timestamp: u64,
                parent_hash: H256,
                transactions: Vec<SignedTransaction>,
-               time_signature: H520)
+               time_signature: Vec<u8>)
                -> Block {
 
         let proof = Proof {
@@ -233,14 +233,14 @@ impl Block {
     }
 
     /// generate proof
-    pub fn gen_proof(private_key: &H256, time: u64, height: u64, anc_hash: H256 ) -> H520 {
+    pub fn gen_proof(private_key: Vec<u8>, time: u64, height: u64, anc_hash: H256 ) -> Vec<u8> {
         let mut h1 = H256::from(time).to_vec();
         let mut h2 = H256::from(height).to_vec();
         let mut h3 = anc_hash.to_vec();
         h1.append(&mut h2);
         h1.append(&mut h3);
         let hash = h1.sha3();
-        sign(private_key, &hash).unwrap().into()
+        bls::sign(hash.to_vec(), private_key)
     }
 }
 
@@ -251,20 +251,19 @@ mod tests {
 
     #[test]
     fn test_proof_public() {
-        let private_key = H256::from("40f2d8f8e1594579824fd04edfc7ff1ddffd6be153b23f4318e1acff037d3ea9",);
-        let keypair = KeyPair::from_privkey(private_key).unwrap();
+        let (private_key, public_key, g) = bls::key_gen();
         let parent_hash = H256::default();
         let timestamp = 12345;
-        let proof = Block::gen_proof(&private_key, timestamp, 1, H256::default());
+        let proof = Block::gen_proof(private_key, timestamp, 1, H256::default());
         let block = Block::init(1, timestamp, parent_hash, Vec::new(), proof);
-        assert_eq!(block.proof_public(H256::default()).unwrap(), *keypair.pubkey());
+        assert_eq!(block.verify_proof(H256::default(), public_key, g), true);
     }
 
     #[test]
     fn test_sign_public() {
         let parent_hash = H256::default();
         let timestamp = 12345;
-        let mut block = Block::init(1, timestamp, parent_hash, Vec::new(), H520::default());
+        let mut block = Block::init(1, timestamp, parent_hash, Vec::new(), Vec::new());
         let private_key = H256::from("40f2d8f8e1594579824fd04edfc7ff1ddffd6be153b23f4318e1acff037d3ea9",);
         let keypair = KeyPair::from_privkey(private_key).unwrap();
         block.sign(&private_key);
