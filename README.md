@@ -42,7 +42,7 @@ $ git clone https://github.com/cryptape/sleepy.git
 $ cd sleepy
 
 # build in release mode
-$ cargo build --release
+$ cargo build
 ```
 
 This will produce an executable in the `./target/release` subdirectory.
