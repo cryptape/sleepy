@@ -34,6 +34,8 @@ Once you have rustup, build Sleepy from source
 
 ## Build from source
 
+You should install The PBC library first: https://crypto.stanford.edu/pbc/ .
+
 ```bash
 # download Sleepy code
 $ git clone https://github.com/cryptape/sleepy.git

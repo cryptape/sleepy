@@ -15,7 +15,7 @@ pub struct Config {
     pub max_peer: u64,
     pub duration: u64,
     pub hz: u64,
-    pub miner_private_key: H256,
+    pub miner_private_key: Vec<u8>,
     pub signer_private_key: H256,
     pub peers: Vec<PeerConfig>,
     pub keygroups: Vec<KeyGroup>,
@@ -26,7 +26,7 @@ pub struct Config {
 #[derive(Debug, Deserialize)]
 pub struct SleepyConfig {
     pub config: Config,
-    pub public_keys: HashMap<H512, H512>,
+    pub public_keys: HashMap<H512, [Vec<u8>;2]>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -38,7 +38,8 @@ pub struct PeerConfig {
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct KeyGroup {
-    pub miner_public_key: H512,
+    pub miner_public_key: Vec<u8>,
+    pub miner_public_g: Vec<u8>,
     pub signer_public_key: H512,
 }
 
@@ -68,7 +69,8 @@ impl SleepyConfig {
         let mut public_keys = HashMap::new();
 
         for v in config.keygroups.clone() {
-            public_keys.insert(v.miner_public_key, v.signer_public_key);
+            let miner = [v.miner_public_key, v.miner_public_g];
+            public_keys.insert(v.signer_public_key, miner);
         }
 
         SleepyConfig {
@@ -89,8 +91,8 @@ impl SleepyConfig {
         self.start_time
     }
 
-    pub fn get_miner_private_key(&self) -> H256 {
-        self.miner_private_key
+    pub fn get_miner_private_key(&self) -> Vec<u8> {
+        self.miner_private_key.clone()
     }
 
     pub fn get_signer_private_key(&self) -> H256 {
@@ -101,12 +103,12 @@ impl SleepyConfig {
         (U256::max_value() / U256::from((self.max_peer + 1) * self.duration * self.hz)).into()
     }
 
-    pub fn check_keys(&self, miner_key: &H512, sign_key: &H512) -> bool {
-        match self.public_keys.get(miner_key) {
-            Some(k) => k == sign_key,
-            None => false,
-        }
-    }
+    // pub fn check_keys(&self, miner_key: &H512, sign_key: &H512) -> bool {
+    //     match self.public_keys.get(miner_key) {
+    //         Some(k) => k == sign_key,
+    //         None => false,
+    //     }
+    // }
 
     pub fn timestamp_now(&self) -> u64 {
         let now = time::now().to_timespec();
@@ -130,7 +132,7 @@ mod test {
             duration = 6
             epoch_len = 10
             start_time = 1
-            miner_private_key = "5a39ed1020c04d4d84539975b893a4e7c53eab6c2965db8bc3468093a31bc5ae"
+            miner_private_key = [30, 135, 112, 146, 247, 176, 37, 100, 64, 82, 243, 99, 209, 43, 226, 150, 182, 2, 80, 33]
             signer_private_key = "5a39ed1020c04d4d84539975b893a4e7c53eab6c2965db8bc3468093a31bc5ae"
             [[peers]]
             id_card = 1
@@ -141,11 +143,13 @@ mod test {
             ip = "127.0.0.1"
             port = 40002
             [[keygroups]]
-            miner_public_key = "5a39ed1020c04d4d84539975b893a4e7c53eab6c2965db8bc3468093a31bc5ae5a39ed1020c04d4d84539975b893a4e7c53eab6c2965db8bc3468093a31bc5ae"
+            miner_public_key = [5, 187, 13, 170, 167, 224, 60, 147, 202, 19, 224, 0, 123, 201, 193, 8, 80, 105, 212, 162, 5, 103, 50, 145, 212, 129, 226, 7, 133, 209, 205, 106, 25, 243, 195, 27, 250, 97, 33, 164, 1]
+            miner_public_g = [26, 143, 4, 165, 28, 50, 23, 127, 123, 48, 213, 125, 157, 223, 45, 63, 193, 95, 249, 215, 27, 71, 102, 178, 229, 66, 7, 46, 227, 238, 184, 125, 152, 61, 121, 252, 4, 156, 131, 163, 0]
             signer_public_key = "5a39ed1020c04d4d84539975b893a4e7c53eab6c2965db8bc3468093a31bc5ae5a39ed1020c04d4d84539975b893a4e7c53eab6c2965db8bc3468093a31bc5ae"
             [[keygroups]]
-            miner_public_key = "5a39ed1020c04d4d84539975b893a4e7c53eab6c2965db8bc3468093a31bc5ae5a39ed1020c04d4d84539975b893a4e7c53eab6c2965db8bc3468093a31bc5ae"
-            signer_public_key = "5a39ed1020c04d4d84539975b893a4e7c53eab6c2965db8bc3468093a31bc5ae5a39ed1020c04d4d84539975b893a4e7c53eab6c2965db8bc3468093a31bc5ae"
+            miner_public_key = [5, 187, 13, 170, 167, 224, 60, 147, 202, 19, 224, 0, 123, 201, 193, 8, 80, 105, 212, 162, 5, 103, 50, 145, 212, 129, 226, 7, 133, 209, 205, 106, 25, 243, 195, 27, 250, 97, 33, 164, 1]
+            miner_public_g = [26, 143, 4, 165, 28, 50, 23, 127, 123, 48, 213, 125, 157, 223, 45, 63, 193, 95, 249, 215, 27, 71, 102, 178, 229, 66, 7, 46, 227, 238, 184, 125, 152, 61, 121, 252, 4, 156, 131, 163, 0]
+            signer_public_key = "5a39ed1020c04d4d84539975b893a4e7c53eab6c2965db8bc3468093a31bc5ae5a39ed1020c04d4d84539975b893a4e7c53eab6c2965db8bc3468093a31bc5af"
         "#;
 
         let value: Config = toml::from_str(toml).unwrap();

@@ -59,7 +59,9 @@ mod tests {
 		let sig = sign(msg.clone(), private_key.clone());
 		let r = verify(msg, sig.clone(), public_key.clone(), g.clone());
 		assert_eq!(r, true);
-
+println!("{:?}", private_key);
+println!("{:?}", public_key);
+println!("{:?}", g);
 		let msg = vec![2; 20];
 		let r = verify(msg, sig.clone(), public_key.clone(), g.clone());
 		assert_eq!(r, false);
