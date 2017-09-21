@@ -58,6 +58,7 @@ if [ ! -f "$DATA_PATH" ]; then
 fi
 
 cp $ROOT_PATH/bls.keypairs $DATA_PATH/
+cp $ROOT_PATH/ntp_servers $DATA_PATH/
 
 for ((ID=0;ID<$SIZE;ID++))
 do

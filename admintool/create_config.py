@@ -8,11 +8,12 @@ def make_config():
     nid = int(sys.argv[2])
     path = os.path.join(sys.argv[1],"node" + str(nid))
     keypairs_path = os.path.join(sys.argv[1], "bls.keypairs")
+    ntp_path = os.path.join(sys.argv[1], "ntp_servers")
     keypairs_f = open(keypairs_path, "r")
     keypairs = keypairs_f.readlines()
     ip_list = (sys.argv[4]).split(',')
-    duration = int(sys.argv[5])
-    hz = int(sys.argv[6])
+    steps = int(sys.argv[5])
+    nps = int(sys.argv[6])
     port = ip_list[nid].split(':')[1]
     config_name = "config"
     size = int(sys.argv[3])
@@ -21,8 +22,8 @@ def make_config():
     f.write("id_card = " + str(nid) + "\n")
     f.write("port = " + port + "\n")
     f.write("max_peer = " + str(size - 1) + "\n")
-    f.write("duration = " + str(duration) + "\n")
-    f.write("hz = " + str(hz) + "\n")
+    f.write("steps = " + str(steps) + "\n")
+    f.write("nps = " + str(nps) + "\n")
     f.write("epoch_len = " + str(10) + "\n")
     f.write("start_time = " + str(1) + "\n")
     key = keypairs[nid * 3]
@@ -32,6 +33,10 @@ def make_config():
     key = secret_key.read()
     secret_key.close()
     f.write("signer_private_key = \"" + key + "\"\n")
+    ntp_servers_f = open(ntp_path, "r")
+    ntp_servers = ntp_servers_f.read()
+    ntp_servers_f.close()
+    f.write("ntp_servers = " + ntp_servers + "\n")
     ids=range(size)
     ip_list = zip(ids, ip_list)
     del ip_list[nid]

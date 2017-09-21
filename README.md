@@ -51,6 +51,9 @@ This will produce an executable in the `./target/release` subdirectory.
 
 ## Start Sleepy
 ### 1、generate config files
+
+You should edit admintool/ntp_servers first, replace it with 2-3 ntp servers which are fast to you.
+
 ```bash
 $ ./admintool/setup.sh
 ```

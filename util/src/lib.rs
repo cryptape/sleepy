@@ -7,6 +7,7 @@ extern crate tiny_keccak;
 extern crate rlp;
 extern crate heapsize;
 extern crate ansi_term;
+extern crate ntp;
 
 extern crate serde;
 #[macro_use]

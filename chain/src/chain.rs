@@ -63,7 +63,7 @@ impl Chain {
         let subtask = chain.clone();
         thread::spawn(move || {
             info!("hanle pending!");
-            let dur = { 1000 / subtask.config.read().hz };
+            let dur = { 1000 / subtask.config.read().nps };
             let dur = Duration::from_millis(dur);
             loop {
                 thread::sleep(dur);
@@ -140,7 +140,12 @@ impl Chain {
 
         let config = self.config.read();
 
-        let max = config.timestamp_now() + 2 * config.hz * config.duration;
+        let now = match config.ntp_now() {
+            Some(t) => t,
+            _ => return Err(Error::NTPError),
+        };
+
+        let max = now + 2 * config.nps * config.steps;
 
         if max < block.timestamp {
             return Err(Error::InvalidTimestamp);
@@ -166,7 +171,7 @@ impl Chain {
             }
         }
 
-        if block.timestamp > { config.timestamp_now() } {
+        if block.timestamp > now {
             self.future_blocks.write().push(block.clone());
             return Err(Error::FutureBlock);
         }
@@ -365,18 +370,19 @@ impl Chain {
     }
 
     fn handle_pending(&self) {
-        let now = self.config.read().timestamp_now();
+        if let Some(now) = self.config.read().ntp_now() {
 
-        let left: Vec<Block> = self.future_blocks.read().clone().into_iter().filter(|b| {
-            if b.timestamp <= now {
-                self.insert(b.clone()).expect("insert block failed");
-                false
-            } else {
-                true
-            }
-        }).collect();
+            let left: Vec<Block> = self.future_blocks.read().clone().into_iter().filter(|b| {
+                if b.timestamp <= now {
+                    self.insert(b.clone()).expect("insert block failed");
+                    false
+                } else {
+                    true
+                }
+            }).collect();
 
-        *self.future_blocks.write() = left;
+            *self.future_blocks.write() = left;
+        }
     }
 
 }

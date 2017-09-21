@@ -34,32 +34,38 @@ pub fn start_miner(tx: Sender<(u32, Operation, Vec<u8>)>,
     let tx_pool = tx_pool.clone();
     thread::spawn(move || {
         info!("start mining!");
-        let mut time :u64 = {config.read().timestamp_now()};
+        let mut time = match {config.read().ntp_now()} {
+            Some(t) => t,
+            _ => panic!("NTP Error"),
+        };
         loop {
-            let new_time = {config.read().timestamp_now()};
-            if time < new_time {
-                time = new_time;
-                let (height, hash) = chain.get_status();
-                let miner_privkey = {config.read().get_miner_private_key()};
-                let anc_hash = chain.anc_hash(height, hash).unwrap();
-                
-                let sig = Block::gen_proof(miner_privkey, time, height + 1, anc_hash);
-                let proof = sig.sha3();
-                let difficulty: H256 = {config.read().get_difficulty().into()};
+            if let Some(new_time) = {config.read().ntp_now()} {
+                if time < new_time {
+                    time = new_time;
+                    let (height, hash) = chain.get_status();
+                    let miner_privkey = {config.read().get_miner_private_key()};
+                    let anc_hash = chain.anc_hash(height, hash).unwrap();
+                    
+                    let sig = Block::gen_proof(miner_privkey, time, height + 1, anc_hash);
+                    let proof = sig.sha3();
+                    let difficulty: H256 = {config.read().get_difficulty().into()};
 
-                if proof < difficulty {               
-                    let id = {config.read().get_id()};
-                    let (tx_list, hash_list) = { tx_pool.write().package() };
-                    let signed_blk = chain.gen_block(height, hash, time, sig, tx_list);
-                    { tx_pool.write().update(&hash_list) };
-                    info!("generate block at timestamp {}", time);
-                    let msg = MsgClass::BLOCK(signed_blk);
-                    let message = serialize(&msg, Infinite).unwrap();
-                    tx.send((id, Operation::BROADCAST, message)).unwrap();             
+                    if proof < difficulty {               
+                        let id = {config.read().get_id()};
+                        let (tx_list, hash_list) = { tx_pool.write().package() };
+                        let signed_blk = chain.gen_block(height, hash, time, sig, tx_list);
+                        { tx_pool.write().update(&hash_list) };
+                        info!("generate block at timestamp {}", time);
+                        let msg = MsgClass::BLOCK(signed_blk);
+                        let message = serialize(&msg, Infinite).unwrap();
+                        tx.send((id, Operation::BROADCAST, message)).unwrap();             
+                    }
                 }
+            } else {
+                info!("ntp error!!");
             }
             
-            thread::sleep(Duration::from_millis(100 / {config.read().hz}));
+            thread::sleep(Duration::from_millis(100 / {config.read().nps}));
         }
     });
 }
