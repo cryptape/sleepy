@@ -15,6 +15,7 @@ extern crate rand;
 extern crate rustc_hex;
 extern crate libc;
 extern crate serde;
+extern crate plain_hasher;
 
 #[cfg(feature = "heapsizeof")]
 #[macro_use]
@@ -25,3 +26,8 @@ pub mod uint;
 
 pub use hash::*;
 pub use uint::*;
+
+pub mod prelude {
+	pub use uint::*;
+	pub use ::hash::*;
+}

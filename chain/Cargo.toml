@@ -14,3 +14,8 @@ log = "0.3"
 util = { path = "../util" }
 crypto = {path = "../crypto"}
 bls = {path = "../util/bls"}
+rlp = { path = "../util/rlp" }
+rlp_derive = { path = "../util/rlp_derive" }
+kvdb = { path = "../util/kvdb" }
+heapsize = "0.4"
+bigint = { path = "../util/bigint" }

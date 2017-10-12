@@ -21,6 +21,7 @@ heapsize = "0.4"
 itertools = "0.5"
 ansi_term = "0.9"
 ntp = "0.3"
+hashdb = { path = "hashdb" }
 
 [dev-dependencies]
 tempdir = "0.3"

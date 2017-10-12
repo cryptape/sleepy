@@ -7,7 +7,7 @@ use error::*;
 use transaction::SignedTransaction;
 use bls;
 
-
+pub type BlockNumber = u64;
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone, Eq)]
 pub struct HashWrap(Cell<Option<H256>>);
 

@@ -9,8 +9,17 @@ extern crate rand;
 extern crate log;
 extern crate bincode;
 extern crate bls;
+#[macro_use]
+extern crate rlp_derive;
+extern crate rlp;
+extern crate kvdb;
+extern crate heapsize;
+extern crate bigint;
 
 pub mod error;
 pub mod block;
 pub mod chain;
 pub mod transaction;
+pub mod extras;
+pub mod config;
+pub mod db;
