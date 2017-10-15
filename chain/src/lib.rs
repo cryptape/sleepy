@@ -15,11 +15,13 @@ extern crate rlp;
 extern crate kvdb;
 extern crate heapsize;
 extern crate bigint;
+extern crate ethcore_bytes as bytes;
 
 pub mod error;
 pub mod block;
 pub mod chain;
 pub mod transaction;
 pub mod extras;
-pub mod config;
 pub mod db;
+pub mod cache_manager;
+pub mod cache;

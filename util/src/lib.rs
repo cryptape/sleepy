@@ -17,6 +17,7 @@ extern crate rustc_hex;
 extern crate serde_json;
 extern crate itertools;
 extern crate hashdb;
+extern crate uuid;
 
 
 #[macro_use]
@@ -25,6 +26,7 @@ pub mod error;
 pub mod sha3;
 pub mod merklehash;
 pub mod config;
+pub mod datapath;
 
 pub use hashdb::*;
 pub use merklehash::*;

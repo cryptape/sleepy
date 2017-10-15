@@ -3,9 +3,12 @@ use crypto::{recover, Signature, sign};
 use bincode::{serialize, Infinite};
 use std::ops::{Deref, DerefMut};
 use std::cell::Cell;
+use std::cmp;
 use error::*;
 use transaction::SignedTransaction;
 use bls;
+use rlp::*;
+use bytes::Bytes;
 
 pub type BlockNumber = u64;
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone, Eq)]
@@ -91,7 +94,7 @@ impl Header {
         match hash {
             Some(h) => h,
             None => {
-                let h = self.cal_hash();
+                let h = self.rlp_hash();
                 self.hash.set(Some(h.clone()));
                 h
             }
@@ -109,12 +112,72 @@ impl Header {
             Ok(false)
         }
     }
+
+    /// Place this header into an RLP stream `s`.
+    pub fn stream_rlp(&self, s: &mut RlpStream) {
+        s.begin_list(7);
+        s.append(&self.parent_hash);
+        s.append(&self.timestamp);
+        s.append(&self.height);
+        s.append(&self.transactions_root);
+        s.append(&self.state_root);
+        s.append(&self.receipts_root);
+        s.append(&self.proof);
+
+    }
+
+    /// Get the RLP of this header.
+    pub fn rlp(&self) -> Bytes {
+        let mut s = RlpStream::new();
+        self.stream_rlp(&mut s);
+        s.out()
+    }
+
+    /// Get the hash (Keccak) of this header.
+    pub fn rlp_hash(&self) -> H256 {
+        self.rlp().sha3()
+    }
 }
 
-#[derive(Hash, Serialize, Deserialize, Clone, PartialEq, Eq, Debug)]
+impl Decodable for Header {
+    fn decode(r: &UntrustedRlp) -> Result<Self, DecoderError> {
+        let blockheader = Header {
+            parent_hash: r.val_at(0)?,
+            timestamp: cmp::min(r.val_at::<U256>(1)?, u64::max_value().into()).as_u64(),
+            height: r.val_at(2)?,
+            transactions_root: r.val_at(3)?,
+            state_root: r.val_at(4)?,
+            receipts_root: r.val_at(5)?,
+            proof: r.val_at(6)?,
+            hash: HashWrap(Cell::new(Some(r.as_raw().sha3()))),
+        };
+
+        Ok(blockheader)
+    }
+}
+
+impl Encodable for Header {
+    fn rlp_append(&self, s: &mut RlpStream) {
+        self.stream_rlp(s);
+    }
+}
+
+impl HeapSizeOf for Header {
+    fn heap_size_of_children(&self) -> usize {
+        0
+    }
+}
+
+#[derive(Hash, Serialize, Deserialize, Clone, PartialEq, Eq, Debug, RlpEncodable, RlpDecodable)]
 pub struct Body {
     /// transactions
     pub transactions: Vec<SignedTransaction>
+}
+
+impl HeapSizeOf for Body {
+    fn heap_size_of_children(&self) -> usize {
+        self.transactions.heap_size_of_children()
+    }
 }
 
 impl Default for Body {
@@ -132,7 +195,7 @@ impl Body {
     }
 }
 
-#[derive(Hash, Clone, Serialize, Deserialize, PartialEq, Eq, Debug)]
+#[derive(Hash, Clone, Serialize, Deserialize, PartialEq, Eq, Debug, RlpEncodable, RlpDecodable)]
 pub struct Proof {
     pub time_signature: Vec<u8>,
     pub block_signature: H520,

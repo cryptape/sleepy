@@ -112,6 +112,15 @@ pub trait Writable {
 		}
 	}
 
+	/// deletes the value into the database and updates the cache.
+	fn delete_with_cache<K, T, R>(&mut self, col: Option<u32>, cache: &mut Cache<K, T>, key: K) where
+	K: Key<T, Target = R> + Hash + Eq,
+	T: rlp::Encodable,
+	R: Deref<Target = [u8]> {
+		self.delete(col, &key);
+		cache.remove(&key);
+	}
+
 	/// Writes the values into the database and updates the cache.
 	fn extend_with_cache<K, T, R>(&mut self, col: Option<u32>, cache: &mut Cache<K, T>, values: HashMap<K, T>, policy: CacheUpdatePolicy) where
 	K: Key<T, Target = R> + Hash + Eq,

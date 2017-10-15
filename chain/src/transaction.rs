@@ -1,19 +1,19 @@
-use util::{H256, H512, H520, Hashable};
+use util::{H256, H512, H520, Hashable, HeapSizeOf};
 use std::ops::{Deref, DerefMut};
 use crypto::{recover, Signature};
 use error::Error;
 
-#[derive(Debug, Clone)]
-pub struct TransactionAddress {
-    pub index: usize,
-    pub block_hash: H256,
-}
-
-#[derive(Hash, Clone, Serialize, Deserialize, PartialEq, Eq, Debug)]
+#[derive(Hash, Clone, Serialize, Deserialize, PartialEq, Eq, Debug, RlpEncodable, RlpDecodable)]
 pub struct Transaction {
     /// Transaction data.
     pub data: Vec<u8>,
     pub hash: H256,
+}
+
+impl HeapSizeOf for Transaction {
+    fn heap_size_of_children(&self) -> usize {
+        self.data.heap_size_of_children()
+    }
 }
 
 impl Transaction {
@@ -39,10 +39,16 @@ impl Transaction {
     }
 }
 
-#[derive(Hash, Clone, Serialize, Deserialize, PartialEq, Eq, Debug)]
+#[derive(Hash, Clone, Serialize, Deserialize, PartialEq, Eq, Debug, RlpEncodable, RlpDecodable)]
 pub struct SignedTransaction {
     pub transaction: Transaction,
     pub signature: H520,
+}
+
+impl HeapSizeOf for SignedTransaction {
+    fn heap_size_of_children(&self) -> usize {
+        self.transaction.heap_size_of_children()
+    }
 }
 
 impl Deref for SignedTransaction {

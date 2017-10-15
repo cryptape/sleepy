@@ -19,18 +19,15 @@
 use std::ops;
 // use std::io::Write;
 use db::Key;
-use block::BlockNumber;
+use block::{BlockNumber, Header, Body};
 
 use heapsize::HeapSizeOf;
-use bigint::prelude::U256;
 use bigint::hash::{H256, H264};
 // use kvdb::PREFIX_LEN as DB_PREFIX_LEN;
 
 /// Represents index of extra data in database
 #[derive(Copy, Debug, Hash, Eq, PartialEq, Clone)]
 pub enum ExtrasIndex {
-	/// Block details index
-	BlockDetails = 0,
 	/// Block hash index
 	BlockHash = 1,
 	/// Transaction address index
@@ -68,11 +65,19 @@ impl Key<H256> for BlockNumber {
 	}
 }
 
-impl Key<BlockDetails> for H256 {
-	type Target = H264;
+impl Key<Header> for H256 {
+	type Target = H256;
 
-	fn key(&self) -> H264 {
-		with_index(self, ExtrasIndex::BlockDetails)
+	fn key(&self) -> H256 {
+		*self
+	}
+}
+
+impl Key<Body> for H256 {
+	type Target = H256;
+
+	fn key(&self) -> H256 {
+		*self
 	}
 }
 
@@ -81,25 +86,6 @@ impl Key<TransactionAddress> for H256 {
 
 	fn key(&self) -> H264 {
 		with_index(self, ExtrasIndex::TransactionAddress)
-	}
-}
-
-/// Familial details concerning a block
-#[derive(Debug, Clone, RlpEncodable, RlpDecodable)]
-pub struct BlockDetails {
-	/// Block number
-	pub number: BlockNumber,
-	/// Total difficulty of the block and all its parents
-	pub total_difficulty: U256,
-	/// Parent block hash
-	pub parent: H256,
-	/// List of children block hashes
-	pub children: Vec<H256>,
-}
-
-impl HeapSizeOf for BlockDetails {
-	fn heap_size_of_children(&self) -> usize {
-		self.children.heap_size_of_children()
 	}
 }
 

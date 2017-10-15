@@ -22,6 +22,7 @@ itertools = "0.5"
 ansi_term = "0.9"
 ntp = "0.3"
 hashdb = { path = "hashdb" }
+uuid = { version = "0.4", features = ["v4"] }
 
 [dev-dependencies]
 tempdir = "0.3"
