@@ -37,6 +37,7 @@ def make_config():
     ntp_servers = ntp_servers_f.read()
     ntp_servers_f.close()
     f.write("ntp_servers = " + ntp_servers + "\n")
+    f.write("buffer_size = 5\n")
     ids=range(size)
     ip_list = zip(ids, ip_list)
     del ip_list[nid]

@@ -25,6 +25,7 @@ pub struct Config {
     pub epoch_len: u64,
     pub start_time: u64,
     pub ntp_servers: Vec<String>,
+    pub buffer_size: u64,
 }
 
 #[derive(Debug, Deserialize)]
@@ -181,6 +182,7 @@ mod test {
             miner_private_key = [30, 135, 112, 146, 247, 176, 37, 100, 64, 82, 243, 99, 209, 43, 226, 150, 182, 2, 80, 33]
             signer_private_key = "5a39ed1020c04d4d84539975b893a4e7c53eab6c2965db8bc3468093a31bc5ae"
             ntp_servers = ["s1a.time.edu.cn:123", "cn.ntp.org.cn:123" ]
+            buffer_size = 5
             
             [[peers]]
             id_card = 1
@@ -205,9 +207,9 @@ mod test {
         println!("{:?}", config);
         assert_eq!(config.port, 40000);
 
-        let _ = config.ntp_now().unwrap();
+        let _ = config.ntp_now();
         thread::sleep(Duration::from_millis(100));
-        let _ = config.ntp_now().unwrap();
+        let _ = config.ntp_now();
         // assert_eq!(t1 - t, 1);
     }
 }

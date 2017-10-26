@@ -19,7 +19,7 @@
 use std::ops;
 // use std::io::Write;
 use db::Key;
-use block::{BlockNumber, Header, Body};
+use block::{BlockNumber, RichHeader, Header, Body};
 
 use heapsize::HeapSizeOf;
 use bigint::hash::{H256, H264};
@@ -66,6 +66,14 @@ impl Key<H256> for BlockNumber {
 }
 
 impl Key<Header> for H256 {
+	type Target = H256;
+
+	fn key(&self) -> H256 {
+		*self
+	}
+}
+
+impl Key<RichHeader> for H256 {
 	type Target = H256;
 
 	fn key(&self) -> H256 {

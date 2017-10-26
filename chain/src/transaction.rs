@@ -83,4 +83,9 @@ impl SignedTransaction {
     pub fn hash(&self) -> H256 {
         self.hash
     }
+
+    ///the hash of the transaction
+    pub fn timestamp(&self) -> u64 {
+        self.timestamp
+    }
 }

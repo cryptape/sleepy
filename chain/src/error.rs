@@ -4,6 +4,7 @@ pub enum Error {
     UnknownParent,
     DuplicateBlock,
     DuplicateTransaction,
+    OverdueTransaction,
     InvalidTimestamp,
     InvalidReceiptsRoot,
     InvalidStateRoot,
@@ -13,6 +14,7 @@ pub enum Error {
     InvalidProof,
     InvalidSignature,
     InvalidFormat,
+    LongFork,
     UnknownAncestor,
     NTPError,
 }

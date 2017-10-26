@@ -1,6 +1,5 @@
 use util::*;
 use crypto::{recover, Signature, sign};
-use bincode::{serialize, Infinite};
 use std::ops::{Deref, DerefMut};
 use std::cell::Cell;
 use std::cmp;
@@ -81,13 +80,6 @@ impl Header {
         self.proof.time_signature.sha3().into()
     }
 
-    /// calculate the hash of the header
-    pub fn cal_hash(&self) -> H256 {
-        let binwrap = (self.parent_hash, self.timestamp, self.height, self.transactions_root, 
-                       self.state_root, self.receipts_root, self.proof.time_signature.to_vec());
-        serialize(&binwrap, Infinite).unwrap().sha3()
-    }
-
     /// Get the hash of this header.
     pub fn hash(&self) -> H256 {
         let hash = self.hash.get();
@@ -165,6 +157,32 @@ impl Encodable for Header {
 impl HeapSizeOf for Header {
     fn heap_size_of_children(&self) -> usize {
         0
+    }
+}
+
+#[derive(Clone, PartialEq, Eq, Debug, RlpEncodable, RlpDecodable)]
+pub struct RichHeader {
+    pub header: Header,
+    pub verified: bool,
+}
+
+impl Deref for RichHeader {
+    type Target = Header;
+
+    fn deref(&self) -> &Header {
+        &self.header
+    }
+}
+
+impl DerefMut for RichHeader {
+    fn deref_mut(&mut self) -> &mut Header {
+        &mut self.header
+    }
+}
+
+impl HeapSizeOf for RichHeader {
+    fn heap_size_of_children(&self) -> usize {
+        self.header.heap_size_of_children()
     }
 }
 
