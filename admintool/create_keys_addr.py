@@ -44,5 +44,5 @@ def mk_signer_keys_addr():
     auth_file.write(authority + "\n")
     auth_file.close()
 
-mk_miner_keys_addr()
+# mk_miner_keys_addr()
 mk_signer_keys_addr()

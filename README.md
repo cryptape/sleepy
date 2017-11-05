@@ -34,13 +34,15 @@ Once you have rustup, build Sleepy from source
 
 ## Build from source
 
+You should install The PBC library first: https://crypto.stanford.edu/pbc/ .
+
 ```bash
 # download Sleepy code
 $ git clone https://github.com/cryptape/sleepy.git
 $ cd sleepy
 
 # build in release mode
-$ cargo build --release
+$ cargo build
 ```
 
 This will produce an executable in the `./target/release` subdirectory.
@@ -49,6 +51,9 @@ This will produce an executable in the `./target/release` subdirectory.
 
 ## Start Sleepy
 ### 1、generate config files
+
+You should edit admintool/ntp_servers first, replace it with 2-3 ntp servers which are fast to you.
+
 ```bash
 $ ./admintool/setup.sh
 ```

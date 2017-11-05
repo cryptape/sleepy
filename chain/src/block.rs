@@ -1,12 +1,15 @@
 use util::*;
 use crypto::{recover, Signature, sign};
-use bincode::{serialize, Infinite};
 use std::ops::{Deref, DerefMut};
 use std::cell::Cell;
+use std::cmp;
 use error::*;
 use transaction::SignedTransaction;
+use bls;
+use rlp::*;
+use bytes::Bytes;
 
-
+pub type BlockNumber = u64;
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone, Eq)]
 pub struct HashWrap(Cell<Option<H256>>);
 
@@ -60,29 +63,21 @@ impl Header {
         Self::default()
     }
 
-    /// Recovers the public key of the proof.
-	pub fn proof_public(&self, anc_hash: H256) -> Result<H512, Error> {
-        let sig: Signature = self.proof.time_signature.into();
+    /// verify the proof.
+	pub fn verify_proof(&self, anc_hash: H256, pubkey: Vec<u8>, g: Vec<u8>) -> bool {
+        let sig = self.proof.time_signature.clone();
         let mut h1 = H256::from(self.timestamp).to_vec();
         let mut h2 = H256::from(self.height).to_vec();
         let mut h3 = anc_hash.to_vec();
         h1.append(&mut h2);
         h1.append(&mut h3);
         let hash = h1.sha3();
-        recover(&sig, &hash).map_err(|_| Error::InvalidSignature)
-        
+        bls::verify(hash.to_vec(), sig, pubkey, g)        
 	}
 
     /// Get difficulty
     pub fn difficulty(&self) -> U256 {
         self.proof.time_signature.sha3().into()
-    }
-
-    /// calculate the hash of the header
-    pub fn cal_hash(&self) -> H256 {
-        let binwrap = (self.parent_hash, self.timestamp, self.height, self.transactions_root, 
-                       self.state_root, self.receipts_root, self.proof.time_signature.to_vec());
-        serialize(&binwrap, Infinite).unwrap().sha3()
     }
 
     /// Get the hash of this header.
@@ -91,7 +86,7 @@ impl Header {
         match hash {
             Some(h) => h,
             None => {
-                let h = self.cal_hash();
+                let h = self.rlp_hash();
                 self.hash.set(Some(h.clone()));
                 h
             }
@@ -109,12 +104,98 @@ impl Header {
             Ok(false)
         }
     }
+
+    /// Place this header into an RLP stream `s`.
+    pub fn stream_rlp(&self, s: &mut RlpStream) {
+        s.begin_list(7);
+        s.append(&self.parent_hash);
+        s.append(&self.timestamp);
+        s.append(&self.height);
+        s.append(&self.transactions_root);
+        s.append(&self.state_root);
+        s.append(&self.receipts_root);
+        s.append(&self.proof);
+
+    }
+
+    /// Get the RLP of this header.
+    pub fn rlp(&self) -> Bytes {
+        let mut s = RlpStream::new();
+        self.stream_rlp(&mut s);
+        s.out()
+    }
+
+    /// Get the hash (Keccak) of this header.
+    pub fn rlp_hash(&self) -> H256 {
+        self.rlp().sha3()
+    }
 }
 
-#[derive(Hash, Serialize, Deserialize, Clone, PartialEq, Eq, Debug)]
+impl Decodable for Header {
+    fn decode(r: &UntrustedRlp) -> Result<Self, DecoderError> {
+        let blockheader = Header {
+            parent_hash: r.val_at(0)?,
+            timestamp: cmp::min(r.val_at::<U256>(1)?, u64::max_value().into()).as_u64(),
+            height: r.val_at(2)?,
+            transactions_root: r.val_at(3)?,
+            state_root: r.val_at(4)?,
+            receipts_root: r.val_at(5)?,
+            proof: r.val_at(6)?,
+            hash: HashWrap(Cell::new(Some(r.as_raw().sha3()))),
+        };
+
+        Ok(blockheader)
+    }
+}
+
+impl Encodable for Header {
+    fn rlp_append(&self, s: &mut RlpStream) {
+        self.stream_rlp(s);
+    }
+}
+
+impl HeapSizeOf for Header {
+    fn heap_size_of_children(&self) -> usize {
+        0
+    }
+}
+
+#[derive(Clone, PartialEq, Eq, Debug, RlpEncodable, RlpDecodable)]
+pub struct RichHeader {
+    pub header: Header,
+    pub verified: bool,
+}
+
+impl Deref for RichHeader {
+    type Target = Header;
+
+    fn deref(&self) -> &Header {
+        &self.header
+    }
+}
+
+impl DerefMut for RichHeader {
+    fn deref_mut(&mut self) -> &mut Header {
+        &mut self.header
+    }
+}
+
+impl HeapSizeOf for RichHeader {
+    fn heap_size_of_children(&self) -> usize {
+        self.header.heap_size_of_children()
+    }
+}
+
+#[derive(Hash, Serialize, Deserialize, Clone, PartialEq, Eq, Debug, RlpEncodable, RlpDecodable)]
 pub struct Body {
     /// transactions
     pub transactions: Vec<SignedTransaction>
+}
+
+impl HeapSizeOf for Body {
+    fn heap_size_of_children(&self) -> usize {
+        self.transactions.heap_size_of_children()
+    }
 }
 
 impl Default for Body {
@@ -132,16 +213,16 @@ impl Body {
     }
 }
 
-#[derive(Hash, Clone, Serialize, Deserialize, PartialEq, Eq, Debug)]
+#[derive(Hash, Clone, Serialize, Deserialize, PartialEq, Eq, Debug, RlpEncodable, RlpDecodable)]
 pub struct Proof {
-    pub time_signature: H520,
+    pub time_signature: Vec<u8>,
     pub block_signature: H520,
 }
 
 impl Default for Proof {
 	fn default() -> Self {
 		Proof {
-            time_signature: H520::default(),
+            time_signature: Vec::new(),
             block_signature: H520::default(),
 		}
 	}
@@ -184,7 +265,7 @@ impl Block {
                timestamp: u64,
                parent_hash: H256,
                transactions: Vec<SignedTransaction>,
-               time_signature: H520)
+               time_signature: Vec<u8>)
                -> Block {
 
         let proof = Proof {
@@ -233,14 +314,14 @@ impl Block {
     }
 
     /// generate proof
-    pub fn gen_proof(private_key: &H256, time: u64, height: u64, anc_hash: H256 ) -> H520 {
+    pub fn gen_proof(private_key: Vec<u8>, time: u64, height: u64, anc_hash: H256 ) -> Vec<u8> {
         let mut h1 = H256::from(time).to_vec();
         let mut h2 = H256::from(height).to_vec();
         let mut h3 = anc_hash.to_vec();
         h1.append(&mut h2);
         h1.append(&mut h3);
         let hash = h1.sha3();
-        sign(private_key, &hash).unwrap().into()
+        bls::sign(hash.to_vec(), private_key)
     }
 }
 
@@ -251,20 +332,19 @@ mod tests {
 
     #[test]
     fn test_proof_public() {
-        let private_key = H256::from("40f2d8f8e1594579824fd04edfc7ff1ddffd6be153b23f4318e1acff037d3ea9",);
-        let keypair = KeyPair::from_privkey(private_key).unwrap();
+        let (private_key, public_key, g) = bls::key_gen();
         let parent_hash = H256::default();
         let timestamp = 12345;
-        let proof = Block::gen_proof(&private_key, timestamp, 1, H256::default());
+        let proof = Block::gen_proof(private_key, timestamp, 1, H256::default());
         let block = Block::init(1, timestamp, parent_hash, Vec::new(), proof);
-        assert_eq!(block.proof_public(H256::default()).unwrap(), *keypair.pubkey());
+        assert_eq!(block.verify_proof(H256::default(), public_key, g), true);
     }
 
     #[test]
     fn test_sign_public() {
         let parent_hash = H256::default();
         let timestamp = 12345;
-        let mut block = Block::init(1, timestamp, parent_hash, Vec::new(), H520::default());
+        let mut block = Block::init(1, timestamp, parent_hash, Vec::new(), Vec::new());
         let private_key = H256::from("40f2d8f8e1594579824fd04edfc7ff1ddffd6be153b23f4318e1acff037d3ea9",);
         let keypair = KeyPair::from_privkey(private_key).unwrap();
         block.sign(&private_key);

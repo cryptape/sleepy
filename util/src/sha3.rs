@@ -34,7 +34,7 @@ pub const SHA3_EMPTY_LIST_RLP: H256 = H256( [0x1d, 0xcc, 0x4d, 0xe8, 0xde, 0xc7,
 /// Types implementing this trait are sha3able.
 ///
 /// ```
-/// extern crate ethcore_util as util;
+/// extern crate util as util;
 /// use std::str::FromStr;
 /// use util::sha3::*;
 /// use util::hash::*;
@@ -89,8 +89,11 @@ pub fn sha3(r: &mut io::BufRead) -> Result<H256, io::Error> {
 
 #[cfg(test)]
 mod tests {
+	extern crate tempdir;
+
 	use std::fs;
 	use std::io::{Write, BufReader};
+	use self::tempdir::TempDir;
 	use super::*;
 
 	#[test]
@@ -105,8 +108,9 @@ mod tests {
 	#[test]
 	fn should_sha3_a_file() {
 		// given
-		use devtools::RandomTempPath;
-		let path = RandomTempPath::new();
+		let tempdir = TempDir::new("keccak").unwrap();
+		let mut path = tempdir.path().to_owned();
+		path.push("should_keccak_a_file");
 		// Prepare file
 		{
 			let mut file = fs::File::create(&path).unwrap();

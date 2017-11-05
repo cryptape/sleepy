@@ -8,6 +8,8 @@ cd ${CUR_PATH}/admintool/
 start_node() {
     id=$1
     cd ${CUR_PATH}/admintool/release/node${id}
+    mkdir -p db
+    export DATA_PATH=${PWD}/db
     RUST_LOG=sleepy nohup ./sleepy 2>&1 > log &
 }
 

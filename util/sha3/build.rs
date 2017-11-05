@@ -1,6 +1,9 @@
 extern crate gcc;
 
 fn main() {
-    gcc::compile_library("libtinykeccak.a", &["src/tinykeccak.c"]);
+    gcc::Build::new()
+                .file("src/tinykeccak.c")
+                .static_flag(true)
+                .compile("libtinykeccak.a");
 }
 

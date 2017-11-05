@@ -7,6 +7,7 @@ extern crate tiny_keccak;
 extern crate rlp;
 extern crate heapsize;
 extern crate ansi_term;
+extern crate ntp;
 
 extern crate serde;
 #[macro_use]
@@ -15,23 +16,21 @@ extern crate serde_derive;
 extern crate rustc_hex;
 extern crate serde_json;
 extern crate itertools;
+extern crate hashdb;
+extern crate uuid;
 
 
 #[macro_use]
 pub mod common;
 pub mod error;
-pub mod bytes;
 pub mod sha3;
-pub mod hashdb;
-pub mod memorydb;
 pub mod merklehash;
 pub mod config;
+pub mod datapath;
 
 pub use hashdb::*;
-pub use memorydb::MemoryDB;
 pub use merklehash::*;
 pub use error::*;
-pub use bytes::*;
 pub use sha3::*;
 pub use bigint::*;
 pub use bigint::hash;

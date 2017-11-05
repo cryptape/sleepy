@@ -1,36 +1,32 @@
-use util::{H256, H512, H520, Hashable};
+use util::{H256, H512, H520, Hashable, HeapSizeOf};
 use std::ops::{Deref, DerefMut};
 use crypto::{recover, Signature};
 use error::Error;
+use rlp;
 
-#[derive(Debug, Clone)]
-pub struct TransactionAddress {
-    pub index: usize,
-    pub block_hash: H256,
-}
-
-#[derive(Hash, Clone, Serialize, Deserialize, PartialEq, Eq, Debug)]
+#[derive(Hash, Clone, Serialize, Deserialize, PartialEq, Eq, Debug, RlpEncodable, RlpDecodable)]
 pub struct Transaction {
     /// Transaction data.
     pub data: Vec<u8>,
-    pub hash: H256,
+    pub timestamp: u64,
+}
+
+impl HeapSizeOf for Transaction {
+    fn heap_size_of_children(&self) -> usize {
+        self.data.heap_size_of_children()
+    }
 }
 
 impl Transaction {
-    pub fn new() -> Self {
+    pub fn new(t: u64) -> Self {
         Transaction {
-            hash: H256::default(),
+            timestamp: t,
             data: Vec::new()
         }
     }
 
     pub fn cal_hash(&self) -> H256 {
-        self.data.sha3()
-    }
-
-    ///the hash of the transaction
-    pub fn hash(&self) -> H256 {
-        self.hash
+        rlp::encode(self).sha3()
     }
 
     ///set data
@@ -39,10 +35,17 @@ impl Transaction {
     }
 }
 
-#[derive(Hash, Clone, Serialize, Deserialize, PartialEq, Eq, Debug)]
+#[derive(Hash, Clone, Serialize, Deserialize, PartialEq, Eq, Debug, RlpEncodable, RlpDecodable)]
 pub struct SignedTransaction {
     pub transaction: Transaction,
+    pub hash: H256,
     pub signature: H520,
+}
+
+impl HeapSizeOf for SignedTransaction {
+    fn heap_size_of_children(&self) -> usize {
+        self.transaction.heap_size_of_children()
+    }
 }
 
 impl Deref for SignedTransaction {
@@ -60,9 +63,12 @@ impl DerefMut for SignedTransaction {
 }
 
 impl SignedTransaction {
-    pub fn new() -> Self {
+    pub fn new(t: u64) -> Self {
+        let tx = Transaction::new(t);
+        let h = tx.cal_hash();
         SignedTransaction {
-            transaction: Transaction::new(),
+            transaction: tx,
+            hash: h,
             signature: H520::default(),
         }
     }
@@ -72,4 +78,14 @@ impl SignedTransaction {
         recover(&sig, &self.hash()).map_err(|_| Error::InvalidSignature)
         
 	}
+
+    ///the hash of the transaction
+    pub fn hash(&self) -> H256 {
+        self.hash
+    }
+
+    ///the hash of the transaction
+    pub fn timestamp(&self) -> u64 {
+        self.timestamp
+    }
 }

@@ -2,7 +2,7 @@ use std::net::SocketAddr;
 use std::{io, thread};
 use std::sync::mpsc::Sender;
 
-use futures::{BoxFuture, Future};
+use futures::Future;
 use futures::future::result;
 use tokio_proto::TcpServer;
 use tokio_service::Service;
@@ -36,10 +36,10 @@ impl Service for Server {
     type Request = SleepyRequest;
     type Response = SleepyResponse;
     type Error = io::Error;
-    type Future = BoxFuture<Self::Response, io::Error>;
+    type Future = Box<Future<Item = Self::Response, Error = io::Error>>;
 
     fn call(&self, req: Self::Request) -> Self::Future {
-        result(net_msg_handler(req, &self.mysender)).boxed()
+        Box::new(result(net_msg_handler(req, &self.mysender)))
     }
 }
 

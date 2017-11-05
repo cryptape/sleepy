@@ -11,6 +11,7 @@ extern crate chain;
 extern crate miner;
 extern crate parking_lot;
 extern crate tx_pool;
+extern crate kvdb;
 
 use env_logger::LogBuilder;
 use std::env;
@@ -30,6 +31,9 @@ use chain::error::Error;
 use std::sync::Arc;
 use parking_lot::RwLock;
 use tx_pool::Pool;
+use util::datapath::DataPath;
+use kvdb::{Database, DatabaseConfig};
+use chain::db;
 
 pub fn log_init() {
     let format = |record: &LogRecord| {
@@ -74,6 +78,11 @@ fn main() {
 
     let config = SleepyConfig::new(config_path);
 
+    let nosql_path = DataPath::nosql_path();
+    trace!("nosql_path is {:?}", nosql_path);
+    let db_config = DatabaseConfig::with_columns(db::NUM_COLUMNS);
+    let db = Database::open(&db_config, &nosql_path).unwrap();
+
     let (stx, srx) = channel();
 
     // start server
@@ -91,9 +100,10 @@ fn main() {
     thread::sleep(Duration::new(20, 0));
 
     let config = Arc::new(RwLock::new(config));
+    let db = Arc::new(db);
 
     // init chain
-    let chain = Chain::init(config.clone());
+    let chain = Chain::init(config.clone(), db);
 
     // init tx pool
     let tx_pool = Pool::new(1000, 300);
@@ -101,6 +111,13 @@ fn main() {
 
     // start miner
     start_miner(ctx.clone(), chain.clone(), config.clone(), tx_pool.clone());
+    
+    //garbage collect
+    let chain1 = chain.clone();
+    thread::spawn(move || loop {
+                      thread::sleep(Duration::from_millis(100000));
+                      chain1.collect_garbage();
+                  });
 
     loop {
         let (origin, msg) = srx.recv().unwrap();
