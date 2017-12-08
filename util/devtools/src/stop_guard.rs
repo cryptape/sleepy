@@ -21,25 +21,25 @@ use std::sync::atomic::*;
 
 /// Stop guard that will set a stop flag on drop
 pub struct StopGuard {
-	flag: Arc<AtomicBool>,
+    flag: Arc<AtomicBool>,
 }
 
 impl StopGuard {
-	/// Create a stop guard
-	pub fn new() -> StopGuard {
-		StopGuard {
-			flag: Arc::new(AtomicBool::new(false))
-		}
-	}
+    /// Create a stop guard
+    pub fn new() -> StopGuard {
+        StopGuard {
+            flag: Arc::new(AtomicBool::new(false))
+        }
+    }
 
-	/// Share stop guard between the threads
-	pub fn share(&self) -> Arc<AtomicBool> {
-		self.flag.clone()
-	}
+    /// Share stop guard between the threads
+    pub fn share(&self) -> Arc<AtomicBool> {
+        self.flag.clone()
+    }
 }
 
 impl Drop for StopGuard {
-	fn drop(&mut self) {
-		self.flag.store(true, Ordering::Relaxed)
-	}
+    fn drop(&mut self) {
+        self.flag.store(true, Ordering::Relaxed)
+    }
 }

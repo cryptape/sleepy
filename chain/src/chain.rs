@@ -19,10 +19,10 @@ use heapsize::HeapSizeOf;
 
 #[derive(Debug, Hash, Eq, PartialEq, Clone)]
 enum CacheId {
-	BlockHeader(H256),
-	BlockBody(H256),
-	BlockHashes(BlockNumber),
-	TransactionAddresses(H256),
+    BlockHeader(H256),
+    BlockBody(H256),
+    BlockHashes(BlockNumber),
+    TransactionAddresses(H256),
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -552,20 +552,20 @@ impl Chain {
 
     pub fn block_hash_by_number_db(&self, number: u64) -> Option<H256> {
         let result = self.db.read_with_cache(db::COL_EXTRA, &self.block_hashes, &number);
-		self.cache_man.lock().note_used(CacheId::BlockHashes(number));
-		result
+        self.cache_man.lock().note_used(CacheId::BlockHashes(number));
+        result
     }
 
     pub fn get_block_header_by_hash(&self, hash: &H256) -> Option<RichHeader> {
         let result = self.db.read_with_cache(db::COL_HEADERS, &self.block_headers, hash);
-		self.cache_man.lock().note_used(CacheId::BlockHeader(hash.clone()));
-		result
+        self.cache_man.lock().note_used(CacheId::BlockHeader(hash.clone()));
+        result
     }
 
     pub fn get_block_body_by_hash(&self, hash: &H256) -> Option<Body> {
         let result = self.db.read_with_cache(db::COL_BODIES, &self.block_bodies, hash);
-		self.cache_man.lock().note_used(CacheId::BlockBody(hash.clone()));
-		result
+        self.cache_man.lock().note_used(CacheId::BlockBody(hash.clone()));
+        result
     }
 
     pub fn get_block_body_by_height(&self, height: u64) -> Option<Body> {
@@ -584,11 +584,11 @@ impl Chain {
     }
 
     /// Get the address of transaction with given hash.
-	pub fn get_transaction_address(&self, hash: &H256) -> Option<TransactionAddress> {
-		let result = self.db.read_with_cache(db::COL_EXTRA, &self.transaction_addresses, hash);
-		self.cache_man.lock().note_used(CacheId::TransactionAddresses(hash.clone()));
-		result
-	}
+    pub fn get_transaction_address(&self, hash: &H256) -> Option<TransactionAddress> {
+        let result = self.db.read_with_cache(db::COL_EXTRA, &self.transaction_addresses, hash);
+        self.cache_man.lock().note_used(CacheId::TransactionAddresses(hash.clone()));
+        result
+    }
 
     fn get_unverif_headers(&self, mut header: RichHeader) -> Vec<RichHeader> {
         let mut headers: Vec<RichHeader> = Vec::new();
@@ -866,43 +866,43 @@ impl Chain {
     }
 
     /// Get current cache size.
-	pub fn cache_size(&self) -> CacheSize {
-		CacheSize {
-			blocks: self.block_headers.read().heap_size_of_children() + self.block_bodies.read().heap_size_of_children(),
-			transaction_addresses: self.transaction_addresses.read().heap_size_of_children(),
-		}
-	}
+    pub fn cache_size(&self) -> CacheSize {
+        CacheSize {
+            blocks: self.block_headers.read().heap_size_of_children() + self.block_bodies.read().heap_size_of_children(),
+            transaction_addresses: self.transaction_addresses.read().heap_size_of_children(),
+        }
+    }
 
-	/// Ticks our cache system and throws out any old data.
-	pub fn collect_garbage(&self) {
-		let current_size = self.cache_size().total();
+    /// Ticks our cache system and throws out any old data.
+    pub fn collect_garbage(&self) {
+        let current_size = self.cache_size().total();
 
-		let mut block_headers = self.block_headers.write();
-		let mut block_bodies = self.block_bodies.write();
-		let mut block_hashes = self.block_hashes.write();
-		let mut transaction_addresses = self.transaction_addresses.write();
+        let mut block_headers = self.block_headers.write();
+        let mut block_bodies = self.block_bodies.write();
+        let mut block_hashes = self.block_hashes.write();
+        let mut transaction_addresses = self.transaction_addresses.write();
 
-		let mut cache_man = self.cache_man.lock();
-		cache_man.collect_garbage(current_size, | ids | {
-			for id in &ids {
-				match *id {
-					CacheId::BlockHeader(ref h) => { block_headers.remove(h); },
-					CacheId::BlockBody(ref h) => { block_bodies.remove(h); },
-					CacheId::BlockHashes(ref h) => { block_hashes.remove(h); }
-					CacheId::TransactionAddresses(ref h) => { transaction_addresses.remove(h); }
-				}
-			}
+        let mut cache_man = self.cache_man.lock();
+        cache_man.collect_garbage(current_size, | ids | {
+            for id in &ids {
+                match *id {
+                    CacheId::BlockHeader(ref h) => { block_headers.remove(h); },
+                    CacheId::BlockBody(ref h) => { block_bodies.remove(h); },
+                    CacheId::BlockHashes(ref h) => { block_hashes.remove(h); }
+                    CacheId::TransactionAddresses(ref h) => { transaction_addresses.remove(h); }
+                }
+            }
 
-			block_headers.shrink_to_fit();
-			block_bodies.shrink_to_fit();
-			block_hashes.shrink_to_fit();
-			transaction_addresses.shrink_to_fit();
+            block_headers.shrink_to_fit();
+            block_bodies.shrink_to_fit();
+            block_hashes.shrink_to_fit();
+            transaction_addresses.shrink_to_fit();
 
-			block_headers.heap_size_of_children() +
-			block_bodies.heap_size_of_children() +
-			block_hashes.heap_size_of_children() +
-			transaction_addresses.heap_size_of_children()
-		});
-	}
+            block_headers.heap_size_of_children() +
+            block_bodies.heap_size_of_children() +
+            block_hashes.heap_size_of_children() +
+            transaction_addresses.heap_size_of_children()
+        });
+    }
 
 }

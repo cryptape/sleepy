@@ -20,85 +20,85 @@ use std::io;
 
 #[macro_export]
 macro_rules! vec_into {
-	( $( $x:expr ),* ) => {
-		vec![ $( $x.into() ),* ]
-	}
+    ( $( $x:expr ),* ) => {
+        vec![ $( $x.into() ),* ]
+    }
 }
 
 #[macro_export]
 macro_rules! slice_into {
-	( $( $x:expr ),* ) => {
-		&[ $( $x.into() ),* ]
-	}
+    ( $( $x:expr ),* ) => {
+        &[ $( $x.into() ),* ]
+    }
 }
 
 #[macro_export]
 macro_rules! hash_map {
-	() => { HashMap::new() };
-	( $( $x:expr => $y:expr ),* ) => {{
-		let mut x = HashMap::new();
-		$(
-			x.insert($x, $y);
-		)*
-		x
-	}}
+    () => { HashMap::new() };
+    ( $( $x:expr => $y:expr ),* ) => {{
+        let mut x = HashMap::new();
+        $(
+            x.insert($x, $y);
+        )*
+        x
+    }}
 }
 
 #[macro_export]
 macro_rules! hash_map_into {
-	() => { HashMap::new() };
-	( $( $x:expr => $y:expr ),* ) => {{
-		let mut x = HashMap::new();
-		$(
-			x.insert($x.into(), $y.into());
-		)*
-		x
-	}}
+    () => { HashMap::new() };
+    ( $( $x:expr => $y:expr ),* ) => {{
+        let mut x = HashMap::new();
+        $(
+            x.insert($x.into(), $y.into());
+        )*
+        x
+    }}
 }
 
 #[macro_export]
 macro_rules! map {
-	() => { BTreeMap::new() };
-	( $( $x:expr => $y:expr ),* ) => {{
-		let mut x = BTreeMap::new();
-		$(
-			x.insert($x, $y);
-		)*
-		x
-	}}
+    () => { BTreeMap::new() };
+    ( $( $x:expr => $y:expr ),* ) => {{
+        let mut x = BTreeMap::new();
+        $(
+            x.insert($x, $y);
+        )*
+        x
+    }}
 }
 
 #[macro_export]
 macro_rules! map_into {
-	() => { BTreeMap::new() };
-	( $( $x:expr => $y:expr ),* ) => {{
-		let mut x = BTreeMap::new();
-		$(
-			x.insert($x.into(), $y.into());
-		)*
-		x
-	}}
+    () => { BTreeMap::new() };
+    ( $( $x:expr => $y:expr ),* ) => {{
+        let mut x = BTreeMap::new();
+        $(
+            x.insert($x.into(), $y.into());
+        )*
+        x
+    }}
 }
 
 #[macro_export]
 macro_rules! flush {
-	($arg:expr) => ($crate::common::flush($arg.into()));
-	($($arg:tt)*) => ($crate::common::flush(format!("{}", format_args!($($arg)*))));
+    ($arg:expr) => ($crate::common::flush($arg.into()));
+    ($($arg:tt)*) => ($crate::common::flush(format!("{}", format_args!($($arg)*))));
 }
 
 #[macro_export]
 macro_rules! flushln {
-	($fmt:expr) => (flush!(concat!($fmt, "\n")));
-	($fmt:expr, $($arg:tt)*) => (flush!(concat!($fmt, "\n"), $($arg)*));
+    ($fmt:expr) => (flush!(concat!($fmt, "\n")));
+    ($fmt:expr, $($arg:tt)*) => (flush!(concat!($fmt, "\n"), $($arg)*));
 }
 
 #[doc(hidden)]
 pub fn flush(s: String) {
-	let _ = io::Write::write(&mut io::stdout(), s.as_bytes());
-	let _ = io::Write::flush(&mut io::stdout());
+    let _ = io::Write::write(&mut io::stdout(), s.as_bytes());
+    let _ = io::Write::flush(&mut io::stdout());
 }
 
 #[test]
 fn test_flush() {
-	flushln!("hello_world {:?}", 1);
+    flushln!("hello_world {:?}", 1);
 }

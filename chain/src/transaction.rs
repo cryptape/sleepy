@@ -73,11 +73,11 @@ impl SignedTransaction {
         }
     }
     /// Recovers the public key of the sender.
-	pub fn recover_public(&self) -> Result<H512, Error> {
+    pub fn recover_public(&self) -> Result<H512, Error> {
         let sig: Signature = self.signature.into();
         recover(&sig, &self.hash()).map_err(|_| Error::InvalidSignature)
         
-	}
+    }
 
     ///the hash of the transaction
     pub fn hash(&self) -> H256 {

@@ -26,17 +26,17 @@ impl Deref for HashWrap {
 #[derive(Clone, PartialEq, Serialize, Deserialize, Eq, Debug)]
 pub struct Header {
     /// Parent hash.
-	pub parent_hash: H256,
-	/// Block timestamp.
-	pub timestamp: u64,
-	/// Block height.
-	pub height: u64,
-	/// Transactions root.
-	pub transactions_root: H256,
-	/// State root.
-	pub state_root: H256,
-	/// Block receipts root.
-	pub receipts_root: H256,
+    pub parent_hash: H256,
+    /// Block timestamp.
+    pub timestamp: u64,
+    /// Block height.
+    pub height: u64,
+    /// Transactions root.
+    pub transactions_root: H256,
+    /// State root.
+    pub state_root: H256,
+    /// Block receipts root.
+    pub receipts_root: H256,
     /// Block hash
     pub hash: HashWrap,
     /// Block proof
@@ -44,18 +44,18 @@ pub struct Header {
 }
 
 impl Default for Header {
-	fn default() -> Self {
-		Header {
-			parent_hash: H256::default(),
-			timestamp: 0,
-			height: 0,
-			transactions_root: SHA3_NULL_RLP,
-			state_root: SHA3_NULL_RLP,
-			receipts_root: SHA3_NULL_RLP,
+    fn default() -> Self {
+        Header {
+            parent_hash: H256::default(),
+            timestamp: 0,
+            height: 0,
+            transactions_root: SHA3_NULL_RLP,
+            state_root: SHA3_NULL_RLP,
+            receipts_root: SHA3_NULL_RLP,
             hash: HashWrap(Cell::new(None)),
             proof: Proof::default(),
-		}
-	}
+        }
+    }
 }
 
 impl Header {
@@ -64,7 +64,7 @@ impl Header {
     }
 
     /// verify the proof.
-	pub fn verify_proof(&self, anc_hash: H256, pubkey: Vec<u8>, g: Vec<u8>) -> bool {
+    pub fn verify_proof(&self, anc_hash: H256, pubkey: Vec<u8>, g: Vec<u8>) -> bool {
         let sig = self.proof.time_signature.clone();
         let mut h1 = H256::from(self.timestamp).to_vec();
         let mut h2 = H256::from(self.height).to_vec();
@@ -73,7 +73,7 @@ impl Header {
         h1.append(&mut h3);
         let hash = h1.sha3();
         bls::verify(hash.to_vec(), sig, pubkey, g)        
-	}
+    }
 
     /// Get difficulty
     pub fn difficulty(&self) -> U256 {
@@ -199,11 +199,11 @@ impl HeapSizeOf for Body {
 }
 
 impl Default for Body {
-	fn default() -> Self {
-		Body {
+    fn default() -> Self {
+        Body {
             transactions: Vec::new(),
-		}
-	}
+        }
+    }
 }
 
 impl Body {
@@ -220,12 +220,12 @@ pub struct Proof {
 }
 
 impl Default for Proof {
-	fn default() -> Self {
-		Proof {
+    fn default() -> Self {
+        Proof {
             time_signature: Vec::new(),
             block_signature: H520::default(),
-		}
-	}
+        }
+    }
 }
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq, Debug)]
@@ -235,12 +235,12 @@ pub struct Block {
 }
 
 impl Default for Block {
-	fn default() -> Self {
-		Block {
+    fn default() -> Self {
+        Block {
             header: Header::default(),
             body: Body::default(),
-		}
-	}
+        }
+    }
 }
 
 impl Deref for Block {
@@ -274,15 +274,15 @@ impl Block {
         };
 
         let header = Header {
-			parent_hash: parent_hash,
-			timestamp: timestamp,
-			height: height,
-			transactions_root: SHA3_NULL_RLP,
-			state_root: SHA3_NULL_RLP,
-			receipts_root: SHA3_NULL_RLP,
+            parent_hash: parent_hash,
+            timestamp: timestamp,
+            height: height,
+            transactions_root: SHA3_NULL_RLP,
+            state_root: SHA3_NULL_RLP,
+            receipts_root: SHA3_NULL_RLP,
             hash: HashWrap(Cell::new(None)),
             proof: proof,
-		};
+        };
 
         let body = Body {
             transactions: transactions,
@@ -301,10 +301,10 @@ impl Block {
     }
 
     /// Recovers the public key of the signer.
-	pub fn sign_public(&self) -> Result<H512, Error> {
+    pub fn sign_public(&self) -> Result<H512, Error> {
         let sig: Signature = self.proof.block_signature.into();
-		recover(&sig, &self.hash()).map_err(|_| Error::InvalidSignature)
-	}
+        recover(&sig, &self.hash()).map_err(|_| Error::InvalidSignature)
+    }
 
     /// Generate the genesis block.
     pub fn genesis(timestamp: u64) -> Block {

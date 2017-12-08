@@ -17,15 +17,15 @@
 /// Represents blockchain's in-memory cache size in bytes.
 #[derive(Debug)]
 pub struct CacheSize {
-	/// Blocks cache size.
-	pub blocks: usize,
-	/// Transaction addresses cache size.
-	pub transaction_addresses: usize,
+    /// Blocks cache size.
+    pub blocks: usize,
+    /// Transaction addresses cache size.
+    pub transaction_addresses: usize,
 }
 
 impl CacheSize {
-	/// Total amount used by the cache.
-	pub fn total(&self) -> usize {
-		self.blocks + self.transaction_addresses
-	}
+    /// Total amount used by the cache.
+    pub fn total(&self) -> usize {
+        self.blocks + self.transaction_addresses
+    }
 }

@@ -40,88 +40,88 @@ pub const SHA3_EMPTY_LIST_RLP: H256 = H256( [0x1d, 0xcc, 0x4d, 0xe8, 0xde, 0xc7,
 /// use util::hash::*;
 ///
 /// fn main() {
-/// 	assert_eq!([0u8; 0].sha3(), H256::from_str("c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470").unwrap());
+///     assert_eq!([0u8; 0].sha3(), H256::from_str("c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470").unwrap());
 /// }
 /// ```
 pub trait Hashable {
-	/// Calculate SHA3 of this object.
-	fn sha3(&self) -> H256;
+    /// Calculate SHA3 of this object.
+    fn sha3(&self) -> H256;
 
-	/// Calculate SHA3 of this object and place result into dest.
-	fn sha3_into(&self, dest: &mut [u8]) {
-		self.sha3().copy_to(dest);
-	}
+    /// Calculate SHA3 of this object and place result into dest.
+    fn sha3_into(&self, dest: &mut [u8]) {
+        self.sha3().copy_to(dest);
+    }
 }
 
 impl<T> Hashable for T where T: AsRef<[u8]> {
-	fn sha3(&self) -> H256 {
-		let mut ret: H256 = H256::zero();
-		self.sha3_into(&mut *ret);
-		ret
-	}
-	fn sha3_into(&self, dest: &mut [u8]) {
-		let input: &[u8] = self.as_ref();
+    fn sha3(&self) -> H256 {
+        let mut ret: H256 = H256::zero();
+        self.sha3_into(&mut *ret);
+        ret
+    }
+    fn sha3_into(&self, dest: &mut [u8]) {
+        let input: &[u8] = self.as_ref();
 
-		unsafe {
-			sha3_256(dest.as_mut_ptr(), dest.len(), input.as_ptr(), input.len());
-		}
-	}
+        unsafe {
+            sha3_256(dest.as_mut_ptr(), dest.len(), input.as_ptr(), input.len());
+        }
+    }
 }
 
 /// Calculate SHA3 of given stream.
 pub fn sha3(r: &mut io::BufRead) -> Result<H256, io::Error> {
-	let mut output = [0u8; 32];
-	let mut input = [0u8; 1024];
-	let mut sha3 = Keccak::new_keccak256();
+    let mut output = [0u8; 32];
+    let mut input = [0u8; 1024];
+    let mut sha3 = Keccak::new_keccak256();
 
-	// read file
-	loop {
-		let some = r.read(&mut input)?;
-		if some == 0 {
-			break;
-		}
-		sha3.update(&input[0..some]);
-	}
+    // read file
+    loop {
+        let some = r.read(&mut input)?;
+        if some == 0 {
+            break;
+        }
+        sha3.update(&input[0..some]);
+    }
 
-	sha3.finalize(&mut output);
-	Ok(output.into())
+    sha3.finalize(&mut output);
+    Ok(output.into())
 }
 
 #[cfg(test)]
 mod tests {
-	extern crate tempdir;
+    extern crate tempdir;
 
-	use std::fs;
-	use std::io::{Write, BufReader};
-	use self::tempdir::TempDir;
-	use super::*;
+    use std::fs;
+    use std::io::{Write, BufReader};
+    use self::tempdir::TempDir;
+    use super::*;
 
-	#[test]
-	fn sha3_empty() {
-		assert_eq!([0u8; 0].sha3(), SHA3_EMPTY);
-	}
-	#[test]
-	fn sha3_as() {
-		assert_eq!([0x41u8; 32].sha3(), From::from("59cad5948673622c1d64e2322488bf01619f7ff45789741b15a9f782ce9290a8"));
-	}
+    #[test]
+    fn sha3_empty() {
+        assert_eq!([0u8; 0].sha3(), SHA3_EMPTY);
+    }
+    #[test]
+    fn sha3_as() {
+        assert_eq!([0x41u8; 32].sha3(), From::from("59cad5948673622c1d64e2322488bf01619f7ff45789741b15a9f782ce9290a8"));
+    }
 
-	#[test]
-	fn should_sha3_a_file() {
-		// given
-		let tempdir = TempDir::new("keccak").unwrap();
-		let mut path = tempdir.path().to_owned();
-		path.push("should_keccak_a_file");
-		// Prepare file
-		{
-			let mut file = fs::File::create(&path).unwrap();
-			file.write_all(b"something").unwrap();
-		}
+    #[test]
+    fn should_sha3_a_file() {
+        // given
+        let tempdir = TempDir::new("keccak").unwrap();
+        let mut path = tempdir.path().to_owned();
+        path.push("should_keccak_a_file");
+        // Prepare file
+        {
+            let mut file = fs::File::create(&path).unwrap();
+            file.write_all(b"something").unwrap();
+        }
 
-		let mut file = BufReader::new(fs::File::open(&path).unwrap());
-		// when
-		let hash = sha3(&mut file).unwrap();
+        let mut file = BufReader::new(fs::File::open(&path).unwrap());
+        // when
+        let hash = sha3(&mut file).unwrap();
 
-		// then
-		assert_eq!(format!("{:?}", hash), "68371d7e884c168ae2022c82bd837d51837718a7f7dfb7aa3f753074a35e1d87");
-	}
+        // then
+        assert_eq!(format!("{:?}", hash), "68371d7e884c168ae2022c82bd837d51837718a7f7dfb7aa3f753074a35e1d87");
+    }
 }
