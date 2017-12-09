@@ -64,12 +64,12 @@ impl Node {
     // load an inline node into memory or get the hash to do the lookup later.
     fn inline_or_hash(node: &[u8], db: &HashDB, storage: &mut NodeStorage) -> NodeHandle {
         let r = Rlp::new(node);
-		if r.is_data() && r.size() == 32 {
-			NodeHandle::Hash(r.as_val::<H256>())
-		} else {
-			let child = Node::from_rlp(node, db, storage);
-			NodeHandle::InMemory(storage.alloc(Stored::New(child)))
-		}
+        if r.is_data() && r.size() == 32 {
+            NodeHandle::Hash(r.as_val::<H256>())
+        } else {
+            let child = Node::from_rlp(node, db, storage);
+            NodeHandle::InMemory(storage.alloc(Stored::New(child)))
+        }
     }
 
     // decode a node from rlp without getting its children.
@@ -83,7 +83,7 @@ impl Node {
                 for i in 0..2 {
                     let raw = children_rlp[i];
                     let child_rlp = Rlp::new(raw);
-					if !child_rlp.is_empty() {
+                    if !child_rlp.is_empty() {
                         children[i] = Some(Self::inline_or_hash(raw, db, storage));
                     }
                 }
@@ -99,24 +99,24 @@ impl Node {
         match self {
             Node::Empty => {
                 let mut stream = RlpStream::new();
-				stream.append_empty_data();
-				stream.drain()
+                stream.append_empty_data();
+                stream.drain()
             }
             Node::Leaf(key, value) => {
                 let mut stream = RlpStream::new_list(2);
-				stream.append(&&*key);
-				stream.append(&&*value);
-				stream.drain()
+                stream.append(&&*key);
+                stream.append(&&*value);
+                stream.drain()
             }
             Node::Branch(height, key, mut children) => {
                 let mut stream = RlpStream::new_list(4);
-				for child in children.iter_mut().map(Option::take) {
-					if let Some(handle) = child {
-						child_cb(handle, &mut stream);
-					} else {
-						stream.append_empty_data();
-					}
-				}
+                for child in children.iter_mut().map(Option::take) {
+                    if let Some(handle) = child {
+                        child_cb(handle, &mut stream);
+                    } else {
+                        stream.append_empty_data();
+                    }
+                }
                 stream.append(&height);
                 stream.append(&&*key);
                 stream.drain()
@@ -339,10 +339,10 @@ impl<'a> AVLDBMut<'a> {
     {
         match *handle {
             NodeHandle::Hash(ref hash) => Lookup {
-				db: &*self.db,
-				query: DBValue::from_slice,
-				hash: hash.clone(),
-			}.look_up(key),
+                db: &*self.db,
+                query: DBValue::from_slice,
+                hash: hash.clone(),
+            }.look_up(key),
             NodeHandle::InMemory(ref handle) => {
                 match self.storage[handle] {
                     Node::Empty => Ok(None),

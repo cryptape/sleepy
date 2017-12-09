@@ -109,13 +109,13 @@ impl<'db> AVLDB<'db> {
     fn get_raw_or_lookup(&'db self, node: &'db [u8]) -> super::Result<DBValue> {
         // check if its sha3 + len
         let r = Rlp::new(node);
-		match r.is_data() && r.size() == 32 {
-			true => {
-				let key = r.as_val::<H256>();
-				self.db.get(&key).ok_or_else(|| Box::new(AVLError::IncompleteDatabase(key)))
-			}
-			false => Ok(DBValue::from_slice(node))
-		}
+        match r.is_data() && r.size() == 32 {
+            true => {
+                let key = r.as_val::<H256>();
+                self.db.get(&key).ok_or_else(|| Box::new(AVLError::IncompleteDatabase(key)))
+            }
+            false => Ok(DBValue::from_slice(node))
+        }
     }
 }
 

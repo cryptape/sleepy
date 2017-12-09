@@ -28,84 +28,84 @@ use bigint::hash::{H256, H264};
 /// Represents index of extra data in database
 #[derive(Copy, Debug, Hash, Eq, PartialEq, Clone)]
 pub enum ExtrasIndex {
-	/// Block hash index
-	BlockHash = 1,
-	/// Transaction address index
-	TransactionAddress = 2,
+    /// Block hash index
+    BlockHash = 1,
+    /// Transaction address index
+    TransactionAddress = 2,
 }
 
 fn with_index(hash: &H256, i: ExtrasIndex) -> H264 {
-	let mut result = H264::default();
-	result[0] = i as u8;
-	(*result)[1..].clone_from_slice(hash);
-	result
+    let mut result = H264::default();
+    result[0] = i as u8;
+    (*result)[1..].clone_from_slice(hash);
+    result
 }
 
 pub struct BlockNumberKey([u8; 5]);
 
 impl ops::Deref for BlockNumberKey {
-	type Target = [u8];
+    type Target = [u8];
 
-	fn deref(&self) -> &Self::Target {
-		&self.0
-	}
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
 }
 
 impl Key<H256> for BlockNumber {
-	type Target = BlockNumberKey;
+    type Target = BlockNumberKey;
 
-	fn key(&self) -> Self::Target {
-		let mut result = [0u8; 5];
-		result[0] = ExtrasIndex::BlockHash as u8;
-		result[1] = (self >> 24) as u8;
-		result[2] = (self >> 16) as u8;
-		result[3] = (self >> 8) as u8;
-		result[4] = *self as u8;
-		BlockNumberKey(result)
-	}
+    fn key(&self) -> Self::Target {
+        let mut result = [0u8; 5];
+        result[0] = ExtrasIndex::BlockHash as u8;
+        result[1] = (self >> 24) as u8;
+        result[2] = (self >> 16) as u8;
+        result[3] = (self >> 8) as u8;
+        result[4] = *self as u8;
+        BlockNumberKey(result)
+    }
 }
 
 impl Key<Header> for H256 {
-	type Target = H256;
+    type Target = H256;
 
-	fn key(&self) -> H256 {
-		*self
-	}
+    fn key(&self) -> H256 {
+        *self
+    }
 }
 
 impl Key<RichHeader> for H256 {
-	type Target = H256;
+    type Target = H256;
 
-	fn key(&self) -> H256 {
-		*self
-	}
+    fn key(&self) -> H256 {
+        *self
+    }
 }
 
 impl Key<Body> for H256 {
-	type Target = H256;
+    type Target = H256;
 
-	fn key(&self) -> H256 {
-		*self
-	}
+    fn key(&self) -> H256 {
+        *self
+    }
 }
 
 impl Key<TransactionAddress> for H256 {
-	type Target = H264;
+    type Target = H264;
 
-	fn key(&self) -> H264 {
-		with_index(self, ExtrasIndex::TransactionAddress)
-	}
+    fn key(&self) -> H264 {
+        with_index(self, ExtrasIndex::TransactionAddress)
+    }
 }
 
 /// Represents address of certain transaction within block
 #[derive(Debug, PartialEq, Clone, RlpEncodable, RlpDecodable)]
 pub struct TransactionAddress {
-	/// Block hash
-	pub block_hash: H256,
-	/// Transaction index within the block
-	pub index: usize
+    /// Block hash
+    pub block_hash: H256,
+    /// Transaction index within the block
+    pub index: usize
 }
 
 impl HeapSizeOf for TransactionAddress {
-	fn heap_size_of_children(&self) -> usize { 0 }
+    fn heap_size_of_children(&self) -> usize { 0 }
 }

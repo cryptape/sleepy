@@ -73,14 +73,14 @@ impl<'db> Iterator for FatDBIterator<'db> {
     type Item = AVLItem<'db>;
 
     fn next(&mut self) -> Option<Self::Item> {
-		self.avl_iterator.next()
-			.map(|res|
-				res.map(|(hash, value)| {
-					let aux_hash = hash.sha3();
-					(self.avl.db().get(&aux_hash).expect("Missing fatdb hash").to_vec(), value)
-				})
-			)
-	}
+        self.avl_iterator.next()
+            .map(|res|
+                res.map(|(hash, value)| {
+                    let aux_hash = hash.sha3();
+                    (self.avl.db().get(&aux_hash).expect("Missing fatdb hash").to_vec(), value)
+                })
+            )
+    }
 }
 
 #[test]

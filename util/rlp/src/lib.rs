@@ -76,19 +76,19 @@ pub const EMPTY_LIST_RLP: [u8; 1] = [0xC0; 1];
 /// extern crate rlp;
 ///
 /// fn main () {
-/// 	let data = vec![0x83, b'c', b'a', b't'];
-/// 	let animal: String = rlp::decode(&data);
-/// 	assert_eq!(animal, "cat".to_owned());
+///     let data = vec![0x83, b'c', b'a', b't'];
+///     let animal: String = rlp::decode(&data);
+///     assert_eq!(animal, "cat".to_owned());
 /// }
 /// ```
 pub fn decode<T>(bytes: &[u8]) -> T where T: Decodable {
-	let rlp = Rlp::new(bytes);
-	rlp.as_val()
+    let rlp = Rlp::new(bytes);
+    rlp.as_val()
 }
 
 pub fn decode_list<T>(bytes: &[u8]) -> Vec<T> where T: Decodable {
-	let rlp = Rlp::new(bytes);
-	rlp.as_list()
+    let rlp = Rlp::new(bytes);
+    rlp.as_list()
 }
 
 /// Shortcut function to encode structure into rlp.
@@ -97,19 +97,19 @@ pub fn decode_list<T>(bytes: &[u8]) -> Vec<T> where T: Decodable {
 /// extern crate rlp;
 ///
 /// fn main () {
-/// 	let animal = "cat";
-/// 	let out = rlp::encode(&animal).into_vec();
-/// 	assert_eq!(out, vec![0x83, b'c', b'a', b't']);
+///     let animal = "cat";
+///     let out = rlp::encode(&animal).into_vec();
+///     assert_eq!(out, vec![0x83, b'c', b'a', b't']);
 /// }
 /// ```
 pub fn encode<E>(object: &E) -> ElasticArray1024<u8> where E: Encodable {
-	let mut stream = RlpStream::new();
-	stream.append(object);
-	stream.drain()
+    let mut stream = RlpStream::new();
+    stream.append(object);
+    stream.drain()
 }
 
 pub fn encode_list<E, K>(object: &[K]) -> ElasticArray1024<u8> where E: Encodable, K: Borrow<E> {
-	let mut stream = RlpStream::new();
-	stream.append_list(object);
-	stream.drain()
+    let mut stream = RlpStream::new();
+    stream.append_list(object);
+    stream.drain()
 }

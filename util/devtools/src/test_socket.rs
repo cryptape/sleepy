@@ -18,78 +18,78 @@ use std::io::*;
 use std::cmp;
 
 pub struct TestSocket {
-	pub read_buffer: Vec<u8>,
-	pub write_buffer: Vec<u8>,
-	pub cursor: usize,
-	pub buf_size: usize,
+    pub read_buffer: Vec<u8>,
+    pub write_buffer: Vec<u8>,
+    pub cursor: usize,
+    pub buf_size: usize,
 }
 
 impl Default for TestSocket {
-	fn default() -> Self {
-		TestSocket::new()
-	}
+    fn default() -> Self {
+        TestSocket::new()
+    }
 }
 
 impl TestSocket {
-	pub fn new() -> Self {
-		TestSocket {
-			read_buffer: vec![],
-			write_buffer: vec![],
-			cursor: 0,
-			buf_size: 0,
-		}
-	}
+    pub fn new() -> Self {
+        TestSocket {
+            read_buffer: vec![],
+            write_buffer: vec![],
+            cursor: 0,
+            buf_size: 0,
+        }
+    }
 
-	pub fn new_buf(buf_size: usize) -> TestSocket {
-		TestSocket {
-			read_buffer: vec![],
-			write_buffer: vec![],
-			cursor: 0,
-			buf_size: buf_size,
-		}
-	}
+    pub fn new_buf(buf_size: usize) -> TestSocket {
+        TestSocket {
+            read_buffer: vec![],
+            write_buffer: vec![],
+            cursor: 0,
+            buf_size: buf_size,
+        }
+    }
 
-	pub fn new_ready(data: Vec<u8>) -> TestSocket {
-		TestSocket {
-			read_buffer: data,
-			write_buffer: vec![],
-			cursor: 0,
-			buf_size: 0,
-		}
-	}
+    pub fn new_ready(data: Vec<u8>) -> TestSocket {
+        TestSocket {
+            read_buffer: data,
+            write_buffer: vec![],
+            cursor: 0,
+            buf_size: 0,
+        }
+    }
 }
 
 impl Read for TestSocket {
-	fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
-		let end_position = cmp::min(self.read_buffer.len(), self.cursor+buf.len());
-		if self.cursor > end_position { return Ok(0) }
-		let len = cmp::max(end_position - self.cursor, 0);
-		match len {
-			0 => Ok(0),
-			_ => {
-				for i in self.cursor..end_position {
-					buf[i-self.cursor] = self.read_buffer[i];
-				}
-				self.cursor = end_position;
-				Ok(len)
-			}
-		}
-	}
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
+        let end_position = cmp::min(self.read_buffer.len(), self.cursor+buf.len());
+        if self.cursor > end_position { return Ok(0) }
+        let len = cmp::max(end_position - self.cursor, 0);
+        match len {
+            0 => Ok(0),
+            _ => {
+                for i in self.cursor..end_position {
+                    buf[i-self.cursor] = self.read_buffer[i];
+                }
+                self.cursor = end_position;
+                Ok(len)
+            }
+        }
+    }
 }
 
 impl Write for TestSocket {
-	fn write(&mut self, buf: &[u8]) -> Result<usize> {
-		if self.buf_size == 0 || buf.len() < self.buf_size {
-			self.write_buffer.extend(buf.iter().cloned());
-			Ok(buf.len())
-		}
-		else {
-			self.write_buffer.extend(buf.iter().take(self.buf_size).cloned());
-			Ok(self.buf_size)
-		}
-	}
+    fn write(&mut self, buf: &[u8]) -> Result<usize> {
+        if self.buf_size == 0 || buf.len() < self.buf_size {
+            self.write_buffer.extend(buf.iter().cloned());
+            Ok(buf.len())
+        }
+        else {
+            self.write_buffer.extend(buf.iter().take(self.buf_size).cloned());
+            Ok(self.buf_size)
+        }
+    }
 
-	fn flush(&mut self) -> Result<()> {
-		unimplemented!();
-	}
+    fn flush(&mut self) -> Result<()> {
+        unimplemented!();
+    }
 }

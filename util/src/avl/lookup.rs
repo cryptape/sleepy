@@ -56,9 +56,9 @@ impl<'a, Q: Query> Lookup<'a, Q> {
                 // check if new node data is inline or hash.
                 let r = Rlp::new(node_data);
                 if r.is_data() && r.size() == 32 {
-					hash = r.as_val();
-					break
-				}
+                    hash = r.as_val();
+                    break
+                }
             }
         }
         Ok(None)

@@ -28,6 +28,6 @@ pub use hash::*;
 pub use uint::*;
 
 pub mod prelude {
-	pub use uint::*;
-	pub use ::hash::*;
+    pub use uint::*;
+    pub use ::hash::*;
 }

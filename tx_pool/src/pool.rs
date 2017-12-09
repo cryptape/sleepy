@@ -7,42 +7,42 @@ use std::cmp::Ordering;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Strategy {
-	FIFO,
-	PRIORITY,
+    FIFO,
+    PRIORITY,
     VIP,
 }
 
 #[derive(Clone, Debug)]
 struct TxOrder {
     hash : H256,
-	order: u64,
+    order: u64,
 }
 
 impl TxOrder {
-	fn new(hash: H256, order: u64) -> Self {
-		TxOrder {
-			hash: hash,
-			order: order,
-		}
-	}
+    fn new(hash: H256, order: u64) -> Self {
+        TxOrder {
+            hash: hash,
+            order: order,
+        }
+    }
 }
 
 impl Eq for TxOrder {}
 impl PartialEq for TxOrder {
-	fn eq(&self, other: &TxOrder) -> bool {
-		self.cmp(other) == Ordering::Equal
-	}
+    fn eq(&self, other: &TxOrder) -> bool {
+        self.cmp(other) == Ordering::Equal
+    }
 }
 impl PartialOrd for TxOrder {
-	fn partial_cmp(&self, other: &TxOrder) -> Option<Ordering> {
-		Some(self.cmp(other))
-	}
+    fn partial_cmp(&self, other: &TxOrder) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
 }
 
 impl Ord for TxOrder {
-	fn cmp(&self, b: &TxOrder) -> Ordering {
+    fn cmp(&self, b: &TxOrder) -> Ordering {
         self.order.cmp(&b.order)
-	}
+    }
 }
 
 #[derive(Debug)]
