@@ -1,5 +1,6 @@
 use parking_lot::{Mutex, RwLock};
 use util::hash::H256;
+use util::Hashable;
 use std::collections::{HashMap, HashSet, VecDeque};
 use rand::{thread_rng, Rng};
 use util::config::SleepyConfig;
@@ -339,8 +340,11 @@ impl Chain {
     }
 
     pub fn anc_hash(&self, height: u64, hash: H256) -> Option<H256> {
-        let h = self.anc_height(height + 1);
-        self.block_hash_by_number_fork(h, height, hash)
+        let anc_height = self.anc_height(height + 1);
+        match self.block_hash_by_number_fork(anc_height, height, hash) {
+            None => None,
+            Some(h) => self.get_block_header_by_hash(&h).map(|header|header.proof.time_signature.sha3())
+        }
     }
 
     pub fn tx_basic_check(&self, stx: &SignedTransaction) -> Result<(), Error> {
